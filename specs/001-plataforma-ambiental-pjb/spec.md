@@ -14,9 +14,9 @@
 
 ## Contexto
 
-La plataforma se llama **NIDO PJB** — *Nodo de Investigación y Datos Observados del Instituto Pedro Justo Berrío*. Vivirá en el dominio **institutopedrojustoberrio.com**.
+La plataforma se llama **NIDO PJB** — *Nodo de Investigación y Datos Observados del Instituto Salesiano Pedro Justo Berrío*. Vivirá en el dominio **institutopedrojustoberrio.com**.
 
-El Instituto Pedro Justo Berrío (siglas **PJB**) desarrolla un proyecto escolar de ciencias ambientales que combina tres elementos físicos ya existentes:
+El Instituto Salesiano Pedro Justo Berrío (siglas **PJB**) desarrolla un proyecto escolar de ciencias ambientales que combina tres elementos físicos ya existentes:
 
 1. **Maqueta de la estación meteorológica fija** del parque San José, ubicado dentro del colegio.
 2. **Instrumentos de medición meteorológicos didácticos** (construidos en plástico por los estudiantes) que hacen tangible cómo se miden las variables climáticas.
@@ -216,7 +216,7 @@ Un visitante que recorre el mapa quiere entender de dónde salen los datos. Encu
 
 ### Identidad y marca
 
-- **FR-001**: La plataforma DEBE presentarse con el nombre **NIDO PJB**, y su lectura completa —*Nodo de Investigación y Datos Observados del Instituto Pedro Justo Berrío*— DEBE aparecer al menos una vez en la pantalla pública de presentación.
+- **FR-001**: La plataforma DEBE presentarse con el nombre **NIDO PJB**, y su lectura completa —*Nodo de Investigación y Datos Observados del Instituto Salesiano Pedro Justo Berrío*— DEBE aparecer al menos una vez en la pantalla pública de presentación.
 - **FR-002**: La plataforma DEBE conservar el ave multicolor y la barra cromática de calidad del aire del logo actual como base de su identidad visual, sustituyendo únicamente el texto de la marca.
 - **FR-003**: La interfaz DEBE seguir un estilo fresco y minimalista: predominio de espacio en blanco, tipografía legible, color usado con intención para comunicar estado ambiental y no como decoración, y ausencia de elementos ornamentales que compitan con el contenido.
 - **FR-004**: La paleta DEBE derivarse de la barra cromática del logo (verde → amarillo → naranja → rojo → morado) y esa escala DEBE usarse de forma consistente para representar niveles de calidad del aire en todas las pantallas.
@@ -439,7 +439,7 @@ Resueltas por el equipo el 2026-08-28.
 
 | # | Decisión | Efecto en la especificación |
 |---|----------|------------------------------|
-| 1 | El proyecto se llama **NIDO PJB** — *Nodo de Investigación y Datos Observados del Instituto Pedro Justo Berrío*. Se conserva el logo actual y solo cambia el texto de la marca. | FR-001, FR-002, A-001 |
+| 1 | El proyecto se llama **NIDO PJB** — *Nodo de Investigación y Datos Observados del Instituto Salesiano Pedro Justo Berrío*. Se conserva el logo actual y solo cambia el texto de la marca. | FR-001, FR-002, A-001 |
 | 2 | Acceso restringido por correo institucional. El responsable del proyecto da de alta manualmente a los 10 integrantes; no hay autorregistro. Los 7 alias personales del histórico se vinculan al correo institucional de su titular. La aplicación se publica en **institutopedrojustoberrio.com**. | FR-011, FR-013, FR-013a, FR-030, FR-030a, A-006, A-006a |
 | 3 | La aplicación **reemplaza** el formulario en línea actual: todas las mediciones nuevas se registran en ella. Además conserva la importación de hojas de cálculo como vía de respaldo permanente para cargas masivas. | FR-028 a FR-031c, SC-015 |
 

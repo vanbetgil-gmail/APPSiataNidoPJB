@@ -1,7 +1,7 @@
 'use client'
 
 import { useActionState } from 'react'
-import { solicitarEnlace, type EstadoFormulario } from './acciones'
+import { solicitarEnlace, type EstadoFormulario } from '@/lib/auth/acciones'
 
 const INICIAL: EstadoFormulario = { tipo: 'inicial' }
 
@@ -19,7 +19,11 @@ export function FormularioAcceso({ rutaSolicitada }: { rutaSolicitada: string })
     return (
       <div
         role="status"
-        className="rounded-[--radius-tarjeta] border border-[color:var(--color-marca)] bg-[color:var(--color-marca-suave)] p-6"
+        className="rounded-[--radius-suave] border p-6"
+        style={{
+          borderColor: 'var(--color-salvia)',
+          backgroundColor: 'var(--color-salvia-clara)',
+        }}
       >
         <h2 className="text-lg font-semibold">Revise su correo</h2>
         <p className="mt-2 text-sm leading-relaxed">
@@ -52,10 +56,14 @@ export function FormularioAcceso({ rutaSolicitada }: { rutaSolicitada: string })
           placeholder="nombre@colegio.edu.co"
           aria-describedby={estado.tipo !== 'inicial' ? 'mensaje-acceso' : undefined}
           aria-invalid={estado.tipo === 'rechazado' || estado.tipo === 'error'}
-          className="w-full rounded-[--radius-tarjeta] border border-[color:var(--color-borde)] bg-[color:var(--color-superficie)] px-4 py-3 text-base"
+          className="w-full rounded-[--radius-tarjeta] border px-4 py-3.5 text-base transition"
+          style={{
+            borderColor: 'var(--color-borde)',
+            backgroundColor: 'var(--color-superficie)',
+          }}
         />
-        <p className="text-sm text-[color:var(--color-texto-suave)]">
-          Solo pueden entrar los integrantes del proyecto. No hay registro abierto.
+        <p className="text-xs" style={{ color: 'var(--color-texto-suave)' }}>
+          Le enviaremos un enlace de un solo uso. Sin contraseñas que recordar.
         </p>
       </div>
 
@@ -63,11 +71,16 @@ export function FormularioAcceso({ rutaSolicitada }: { rutaSolicitada: string })
         <p
           id="mensaje-acceso"
           role="alert"
-          className={`rounded-[--radius-tarjeta] border px-4 py-3 text-sm leading-relaxed ${
+          className="rounded-[--radius-tarjeta] border px-4 py-3 text-sm leading-relaxed"
+          style={
             estado.tipo === 'rechazado' && estado.motivo === 'no_autorizado'
-              ? 'border-[color:var(--color-borde)] bg-[color:var(--color-fondo)]'
-              : 'border-[color:var(--color-ica-sensibles)] bg-orange-50 text-orange-950'
-          }`}
+              ? { borderColor: 'var(--color-borde)', backgroundColor: 'var(--color-fondo)' }
+              : {
+                  borderColor: 'var(--color-ica-sensibles)',
+                  backgroundColor: 'var(--color-crema-clara)',
+                  color: 'var(--color-texto)',
+                }
+          }
         >
           {estado.mensaje}
         </p>
@@ -76,9 +89,11 @@ export function FormularioAcceso({ rutaSolicitada }: { rutaSolicitada: string })
       <button
         type="submit"
         disabled={enviando}
-        className="rounded-full bg-[color:var(--color-marca)] px-5 py-3 font-medium text-white disabled:opacity-60"
+        className="flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 font-medium text-white transition disabled:opacity-60"
+        style={{ backgroundColor: 'var(--color-bosque)' }}
       >
-        {enviando ? 'Enviando…' : 'Enviar enlace de acceso'}
+        {enviando ? 'Enviando…' : 'Entrar al observatorio'}
+        {!enviando && <span aria-hidden>→</span>}
       </button>
     </form>
   )

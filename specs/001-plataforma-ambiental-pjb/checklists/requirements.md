@@ -35,7 +35,7 @@
 
 En la iteración 1 el único ítem no superado era "No [NEEDS CLARIFICATION] markers remain", con 3 marcadores abiertos. El equipo los resolvió y quedaron incorporados a la especificación:
 
-- **FR-001** → el proyecto se llama **NIDO PJB** (*Nodo de Investigación y Datos Observados del Instituto Pedro Justo Berrío*).
+- **FR-001** → el proyecto se llama **NIDO PJB** (*Nodo de Investigación y Datos Observados del Instituto Salesiano Pedro Justo Berrío*).
 - **FR-011** → acceso por correo institucional con dominio configurable; alta manual de los 10 integrantes por el responsable, sin autorregistro (FR-013a).
 - **FR-030** → los 7 alias personales del histórico se vinculan al correo institucional de su titular, y la vinculación queda auditable (FR-030a).
 

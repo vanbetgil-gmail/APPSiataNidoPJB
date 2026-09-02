@@ -8,7 +8,7 @@
 
 ## Summary
 
-**NIDO PJB** —*Nodo de Investigación y Datos Observados del Instituto Pedro Justo Berrío*— es una aplicación web única que sirve dos públicos distintos desde la misma base de código:
+**NIDO PJB** —*Nodo de Investigación y Datos Observados del Instituto Salesiano Pedro Justo Berrío*— es una aplicación web única que sirve dos públicos distintos desde la misma base de código:
 
 - **Cualquier visitante, sin cuenta**: recorre un mapa de biodiversidad montado sobre una ortofoto de dron del colegio, abre la ficha de cada especie con su foto y su detalle, entra a vistas inmersivas en puntos seleccionados y conoce la estación meteorológica y los instrumentos didácticos.
 - **Los 10 integrantes, con correo institucional**: registran jornadas de medición de calidad del aire —incluso sin conexión, dentro de los talleres—, consultan tableros con el histórico y documentan nuevas especies.

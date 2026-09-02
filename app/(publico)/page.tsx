@@ -64,7 +64,7 @@ export default async function PaginaMapa() {
           Mapa de biodiversidad del colegio
         </h1>
         <p className="mt-1 max-w-2xl text-sm leading-relaxed text-[color:var(--color-texto-suave)]">
-          Cada punto lo documentaron estudiantes del Instituto Pedro Justo Berrío. Toque uno para
+          Cada punto lo documentaron estudiantes del Instituto Salesiano Pedro Justo Berrío. Toque uno para
           ver su fotografía y lo que observaron.
         </p>
       </div>

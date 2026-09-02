@@ -1,6 +1,31 @@
 import type { Metadata, Viewport } from 'next'
+import { Fraunces, Inter } from 'next/font/google'
 import { urlSitio, esDominioDefinitivo } from '@/lib/sitio'
 import './globals.css'
+
+/*
+ * Tipografías.
+ *
+ * `next/font` las descarga en tiempo de compilación y las sirve desde el
+ * propio dominio: no hay petición a Google al cargar la página, ni el salto
+ * de texto que se ve cuando una fuente llega tarde.
+ *
+ * Fraunces para titulares: serif cálida con un italic de verdad, que es lo
+ * que da el aire editorial y sereno del diseño. Inter para todo lo demás,
+ * que es lo que se lee en formularios, tablas y mapas.
+ */
+const display = Fraunces({
+  subsets: ['latin'],
+  variable: '--fuente-display',
+  display: 'swap',
+  axes: ['SOFT', 'WONK'],
+})
+
+const sans = Inter({
+  subsets: ['latin'],
+  variable: '--fuente-sans',
+  display: 'swap',
+})
 
 // FR-048: la interfaz está íntegramente en español.
 export const metadata: Metadata = {
@@ -11,17 +36,17 @@ export const metadata: Metadata = {
   metadataBase: new URL(urlSitio()),
 
   title: {
-    default: 'NIDO PJB — Mapa de biodiversidad del Instituto Pedro Justo Berrío',
+    default: 'NIDO PJB — Mapa de biodiversidad del Instituto Salesiano Pedro Justo Berrío',
     template: '%s · NIDO PJB',
   },
   description:
-    'Nodo de Investigación y Datos Observados del Instituto Pedro Justo Berrío. Mapa de biodiversidad escolar y registro de mediciones de calidad del aire, hechos por los estudiantes.',
+    'Nodo de Investigación y Datos Observados del Instituto Salesiano Pedro Justo Berrío. Mapa de biodiversidad escolar y registro de mediciones de calidad del aire, hechos por los estudiantes.',
   applicationName: 'NIDO PJB',
-  authors: [{ name: 'Equipo NIDO PJB — Instituto Pedro Justo Berrío' }],
+  authors: [{ name: 'Equipo NIDO PJB — Instituto Salesiano Pedro Justo Berrío' }],
   keywords: [
     'biodiversidad escolar',
     'calidad del aire',
-    'Instituto Pedro Justo Berrío',
+    'Instituto Salesiano Pedro Justo Berrío',
     'Medellín',
     'proyecto ambiental',
     'SIATA',
@@ -38,7 +63,7 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'es_CO',
     siteName: 'NIDO PJB',
-    title: 'NIDO PJB — Mapa de biodiversidad del Instituto Pedro Justo Berrío',
+    title: 'NIDO PJB — Mapa de biodiversidad del Instituto Salesiano Pedro Justo Berrío',
     description:
       'Los árboles, las aves y los insectos del colegio, documentados uno a uno por los estudiantes.',
     url: '/',
@@ -48,7 +73,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'NIDO PJB',
-    description: 'Mapa de biodiversidad del Instituto Pedro Justo Berrío.',
+    description: 'Mapa de biodiversidad del Instituto Salesiano Pedro Justo Berrío.',
   },
 
   /*
@@ -73,7 +98,7 @@ export const viewport: Viewport = {
 
 export default function LayoutRaiz({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es">
+    <html lang="es" className={`${display.variable} ${sans.variable}`}>
       <body>{children}</body>
     </html>
   )

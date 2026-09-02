@@ -1,7 +1,7 @@
 {
   "name": "NIDO PJB — Nodo de Investigación y Datos Observados",
   "short_name": "NIDO PJB",
-  "description": "Mapa de biodiversidad y registro de mediciones de calidad del aire del Instituto Pedro Justo Berrío.",
+  "description": "Mapa de biodiversidad y registro de mediciones de calidad del aire del Instituto Salesiano Pedro Justo Berrío.",
   "lang": "es-CO",
   "start_url": "/",
   "scope": "/",

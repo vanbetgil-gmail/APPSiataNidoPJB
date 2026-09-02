@@ -5,40 +5,84 @@
 @import 'leaflet/dist/leaflet.css';
 
 /*
+  ═══════════════════════════════════════════════════════════════════════════
   NIDO PJB — sistema de diseño
-  FR-003: fresco y minimalista. Mucho blanco, tipografía legible, color con
-  intención. FR-004: la escala cromática sale de la barra del logo y se usa
-  SIEMPRE para representar niveles de calidad del aire, en ninguna otra cosa.
+  ═══════════════════════════════════════════════════════════════════════════
+
+  ── La idea ──────────────────────────────────────────────────────────────
+
+  Minimalista, equilibrado y suave. La interfaz es un lienzo tranquilo —
+  blancos cálidos, salvia, crema— y el color saturado aparece SOLO cuando
+  significa algo: la calidad del aire.
+
+  Esa contención no es estética, es funcional. Si la interfaz ya fuera
+  colorida, un punto rojo en el mapa se perdería entre el resto. Al ser todo
+  lo demás sereno, el color del ICA se lee de inmediato. Es exactamente lo
+  que piden FR-003 («fresco y minimalista») y FR-004 («color con intención
+  para comunicar estado ambiental, no como decoración»).
+
+  ── La escala del ICA sale del logo, medida ──────────────────────────────
+
+  Los cinco colores están tomados píxel a píxel de la barra cromática de
+  `LogoActual.png`, no aproximados a ojo. De izquierda a derecha son
+  exactamente los que aparecen bajo la palabra SIATA.
+
+  ── Contraste ────────────────────────────────────────────────────────────
+
+  Cada pareja de color está comprobada contra WCAG 2.1 AA (4.5:1). Lo más
+  delicado es el amarillo: con texto blanco da 1.35:1, ilegible. Por eso cada
+  categoría del ICA declara su propio color de texto en lugar de asumir
+  blanco para todas.
 */
 
 @theme {
-  /* --- Escala del ICA, tomada de la barra del logo (FR-004, FR-035a) ---
-     Es la única escala de color con significado en toda la aplicación.
-     No usar estos tonos para adornar: si algo es verde, dice "aire bueno". */
-  --color-ica-buena: #2fae5a;
-  --color-ica-aceptable: #f2d024;
-  --color-ica-sensibles: #f28c28;
-  --color-ica-daniña: #e03131;
-  --color-ica-muy-daniña: #8b2fa8;
-  --color-ica-peligrosa: #6b2233;
-  /* Ausencia de dato. Deliberadamente gris y neutro: nunca verde.
-     Asumir aire limpio ante la falta de dato sería el peor error posible. */
-  --color-ica-sin-dato: #9ca3af;
+  /* ── Escala del ICA — colores exactos de la barra del logo ───────────
+     Es la ÚNICA escala de color con significado en toda la aplicación.
+     No usar estos tonos para adornar: si algo es verde, dice «aire bueno». */
+  --color-ica-buena: #209e38;
+  --color-ica-aceptable: #f5e01a;
+  --color-ica-sensibles: #ec6914;
+  --color-ica-daniña: #e41e25;
+  --color-ica-muy-daniña: #961b7e;
+  --color-ica-peligrosa: #5e1230;
+  /* Ausencia de dato. Gris neutro a propósito: nunca verde.
+     Dar por limpio un aire que nadie midió sería el peor error posible. */
+  --color-ica-sin-dato: #9aa5a0;
 
-  /* --- Neutros. El fondo es la base del carácter minimalista --- */
-  --color-fondo: #fbfbf9;
+  /* ── Lienzo ──────────────────────────────────────────────────────────
+     Blanco cálido, no puro: descansa la vista en pantallas de colegio y
+     hace que el blanco de las tarjetas destaque como superficie. */
+  --color-fondo: #faf9f6;
   --color-superficie: #ffffff;
-  --color-borde: #e7e5e0;
-  --color-texto: #1c1b19;
-  --color-texto-suave: #5f5c56;
+  --color-borde: #e6e3dc;
+  --color-texto: #16241f;
+  --color-texto-suave: #5b6b62;
 
-  /* --- Verde de marca, tomado del ave del logo --- */
-  --color-marca: #1f7a45;
-  --color-marca-suave: #eaf5ee;
+  /* ── Tonos de calma ──────────────────────────────────────────────────
+     Salvia y crema. Son los que dan el aire sereno del diseño; se usan en
+     paneles grandes y formas orgánicas, nunca para señalar estado. */
+  --color-salvia: #dfe9e1;
+  --color-salvia-clara: #eef4ef;
+  --color-crema: #ecdcb0;
+  --color-crema-clara: #f7efdd;
 
-  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  /* ── Marca ───────────────────────────────────────────────────────────
+     Verde bosque para acciones y titulares. Es el verde del ave del logo
+     llevado a una profundidad que sí alcanza contraste AA sobre blanco
+     (6.60:1) y sobre salvia (5.31:1). */
+  --color-bosque: #1c3b31;
+  --color-marca: #166b30;
+  --color-marca-suave: #eef4ef;
 
-  --radius-tarjeta: 0.75rem;
+  /* ── Tipografía ──────────────────────────────────────────────────────
+     Serif con italic de verdad para los titulares —da la calidez del
+     diseño— y una sans neutra para todo lo demás, que es lo que se lee en
+     formularios y tablas. Las variables las inyecta next/font. */
+  --font-display: var(--fuente-display), Georgia, 'Times New Roman', serif;
+  --font-sans: var(--fuente-sans), system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --radius-tarjeta: 0.875rem;
+  --radius-suave: 1.5rem;
 }
 
 @layer base {
@@ -57,13 +101,22 @@
     min-height: 100dvh;
   }
 
-  /* WCAG 2.1 AA: el foco debe verse siempre (research.md R-010) */
+  /* Los titulares llevan la serif. El interlineado ajustado y el
+     espaciado negativo son lo que les da el aire editorial del diseño. */
+  h1,
+  h2 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+    line-height: 1.08;
+  }
+
+  /* WCAG 2.1 AA: el foco debe verse siempre */
   :focus-visible {
     outline: 2px solid var(--color-marca);
     outline-offset: 2px;
   }
 
-  /* Objetivo táctil mínimo de 44 px (research.md R-010) */
+  /* Objetivo táctil mínimo de 44 px */
   button,
   a[role='button'],
   [role='tab'] {
@@ -77,5 +130,27 @@
   .desplazable-x {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+  }
+
+  /* Antetítulo en versalitas espaciadas. Da jerarquía sin recurrir a más
+     tamaño ni a más color. */
+  .antetitulo {
+    font-size: 0.6875rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-texto-suave);
+  }
+
+  /* Formas orgánicas de fondo. Puramente decorativas: van con aria-hidden
+     y nunca contienen información. */
+  .forma-suave {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  /* Marcador con vista inmersiva disponible (FR-010e) */
+  .punto-con-inmersiva {
+    filter: drop-shadow(0 0 0 2px var(--color-crema));
   }
 }

@@ -32,8 +32,10 @@ export function EtiquetaCalidadAire({
 
   return (
     <span
-      className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-medium text-white"
-      style={{ backgroundColor: definicion.color }}
+      className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-medium"
+      // Cada categoría trae su propio color de texto: sobre el amarillo del
+      // logo el blanco da 1.35:1 de contraste, ilegible (ver umbrales.ts).
+      style={{ backgroundColor: definicion.color, color: definicion.colorTexto }}
       title={definicion.descripcion}
     >
       {definicion.etiqueta}

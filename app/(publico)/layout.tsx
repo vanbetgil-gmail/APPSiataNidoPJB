@@ -1,50 +1,82 @@
-import { Marca } from '@/components/ui/Marca'
 import Link from 'next/link'
+import { Marca } from '@/components/ui/Marca'
+import { NavegacionEscritorio, NavegacionMovil } from '@/components/ui/NavegacionPublica'
+import { integranteActual } from '@/lib/auth/sesion'
 
 /**
  * Grupo de rutas PÚBLICO.
  *
  * Nada de aquí dentro puede exigir sesión (FR-005, SC-001). Que la separación
  * sea un grupo de rutas y no un condicional hace visible en el propio árbol de
- * archivos qué es público, y reduce la probabilidad de proteger por descuido
- * una pantalla que debía estar abierta —o de abrir una que no.
+ * archivos qué es público.
  *
- * Nótese que NO hay comprobación de sesión en este layout. Es deliberado.
+ * ── Sobre `integranteActual()` aquí ──────────────────────────────────────
+ *
+ * Se consulta la sesión, pero NO para exigirla: para saber si mostrar el
+ * botón «Ingresar» o el nombre de quien ya entró. Si no hay sesión, la página
+ * se sirve igual. Es la diferencia entre adaptar la interfaz y proteger.
+ *
+ * Esto es lo que permite que Biodiversidad sea una sola pestaña: la misma
+ * página que ve cualquier visitante, con las opciones de edición añadidas
+ * para quien tiene cuenta.
  */
-export default function LayoutPublico({ children }: { children: React.ReactNode }) {
+export default async function LayoutPublico({ children }: { children: React.ReactNode }) {
+  const integrante = await integranteActual()
+
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="border-b border-[color:var(--color-borde)] bg-[color:var(--color-superficie)]">
-        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
+      <header
+        className="sticky top-0 z-[500] border-b backdrop-blur"
+        style={{
+          borderColor: 'var(--color-borde)',
+          backgroundColor: 'rgba(250,249,246,.88)',
+        }}
+      >
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-3">
           <Marca />
-          <nav className="desplazable-x flex items-center gap-4 text-sm">
-            <Link href="/" className="text-[color:var(--color-texto-suave)] no-underline hover:text-[color:var(--color-texto)]">
-              Mapa
+          <NavegacionEscritorio />
+
+          {integrante ? (
+            <Link
+              href="/tableros"
+              className="shrink-0 rounded-full px-4 py-2 text-sm no-underline"
+              style={{ backgroundColor: 'var(--color-salvia)', color: 'var(--color-texto)' }}
+            >
+              <span className="hidden sm:inline">Hola, </span>
+              {integrante.nombre.split(' ')[0]}
             </Link>
-            <Link href="/biodiversidad" className="text-[color:var(--color-texto-suave)] no-underline hover:text-[color:var(--color-texto)]">
-              Biodiversidad
-            </Link>
-            <Link href="/estacion" className="text-[color:var(--color-texto-suave)] no-underline hover:text-[color:var(--color-texto)]">
-              Estación
-            </Link>
-            <Link href="/creditos" className="text-[color:var(--color-texto-suave)] no-underline hover:text-[color:var(--color-texto)]">
-              Equipo
-            </Link>
+          ) : (
             <Link
               href="/login"
-              className="rounded-full border border-[color:var(--color-borde)] px-3 py-1.5 text-[color:var(--color-texto)] no-underline"
+              className="shrink-0 rounded-full px-4 py-2 text-sm text-white no-underline"
+              style={{ backgroundColor: 'var(--color-bosque)' }}
             >
               Ingresar
             </Link>
-          </nav>
+          )}
         </div>
       </header>
 
-      <main className="flex-1">{children}</main>
+      {/* pb-20 en móvil: deja sitio a la barra de pestañas de abajo, que es
+          fija y taparía el final del contenido. */}
+      <main className="flex-1 pb-20 md:pb-0">{children}</main>
 
-      <footer className="border-t border-[color:var(--color-borde)] px-4 py-6 text-center text-xs text-[color:var(--color-texto-suave)]">
-        Proyecto ambiental escolar · Instituto Pedro Justo Berrío
+      <footer
+        className="mt-16 border-t px-4 py-10 pb-24 text-center md:pb-10"
+        style={{
+          borderColor: 'var(--color-borde)',
+          backgroundColor: 'var(--color-salvia-clara)',
+        }}
+      >
+        <p className="text-sm" style={{ color: 'var(--color-texto)' }}>
+          NIDO PJB · Nodo de Investigación y Datos Observados
+        </p>
+        <p className="mt-1 text-xs" style={{ color: 'var(--color-texto-suave)' }}>
+          Proyecto ambiental escolar del Instituto Salesiano Pedro Justo Berrío, Medellín
+        </p>
       </footer>
+
+      <NavegacionMovil />
     </div>
   )
 }

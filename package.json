@@ -2,7 +2,7 @@
   "name": "nido-pjb",
   "version": "0.1.0",
   "private": true,
-  "description": "NIDO PJB — Nodo de Investigación y Datos Observados del Instituto Pedro Justo Berrío",
+  "description": "NIDO PJB — Nodo de Investigación y Datos Observados del Instituto Salesiano Pedro Justo Berrío",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

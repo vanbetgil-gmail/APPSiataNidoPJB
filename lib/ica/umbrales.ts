@@ -55,6 +55,16 @@ export interface DefinicionCategoria {
   descripcion: string
   /** Variable CSS de la paleta del logo (FR-004, FR-035a) */
   color: string
+  /**
+   * Color del TEXTO que va encima de ese fondo.
+   *
+   * No es un detalle estético. Sobre el amarillo del logo (#f5e01a) el texto
+   * blanco da 1.35:1 de contraste: ilegible. Sobre el morado, el texto
+   * oscuro da 2.11:1: también ilegible. Ninguno de los dos sirve para todas
+   * las categorías, así que cada una declara el suyo, medido contra
+   * WCAG 2.1 AA (FR-049).
+   */
+  colorTexto: string
   indiceMin: number
   indiceMax: number
 }
@@ -70,6 +80,7 @@ export const CATEGORIAS: readonly DefinicionCategoria[] = [
     etiqueta: 'Buena',
     descripcion: 'El aire está limpio. No hay riesgo para la salud.',
     color: 'var(--color-ica-buena)',
+    colorTexto: 'var(--color-texto)',
     indiceMin: 0,
     indiceMax: 50,
   },
@@ -79,6 +90,7 @@ export const CATEGORIAS: readonly DefinicionCategoria[] = [
     descripcion:
       'El aire es aceptable, pero las personas muy sensibles podrían notar molestias.',
     color: 'var(--color-ica-aceptable)',
+    colorTexto: 'var(--color-texto)',
     indiceMin: 51,
     indiceMax: 100,
   },
@@ -88,6 +100,7 @@ export const CATEGORIAS: readonly DefinicionCategoria[] = [
     descripcion:
       'Las personas con asma, alergias o problemas respiratorios pueden verse afectadas.',
     color: 'var(--color-ica-sensibles)',
+    colorTexto: 'var(--color-texto)',
     indiceMin: 101,
     indiceMax: 150,
   },
@@ -96,6 +109,7 @@ export const CATEGORIAS: readonly DefinicionCategoria[] = [
     etiqueta: 'Dañina a la salud',
     descripcion: 'Todas las personas pueden empezar a sentir efectos en la salud.',
     color: 'var(--color-ica-daniña)',
+    colorTexto: '#ffffff',
     indiceMin: 151,
     indiceMax: 200,
   },
@@ -104,6 +118,7 @@ export const CATEGORIAS: readonly DefinicionCategoria[] = [
     etiqueta: 'Muy dañina a la salud',
     descripcion: 'Alerta sanitaria: todas las personas pueden sufrir efectos graves.',
     color: 'var(--color-ica-muy-daniña)',
+    colorTexto: '#ffffff',
     indiceMin: 201,
     indiceMax: 300,
   },
@@ -112,6 +127,7 @@ export const CATEGORIAS: readonly DefinicionCategoria[] = [
     etiqueta: 'Peligrosa',
     descripcion: 'Emergencia: el aire es peligroso para toda la población.',
     color: 'var(--color-ica-peligrosa)',
+    colorTexto: '#ffffff',
     indiceMin: 301,
     indiceMax: 500,
   },

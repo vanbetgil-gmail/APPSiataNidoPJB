@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { Marca } from './Marca'
-import { cerrarSesion } from '@/app/login/acciones'
+import { cerrarSesion } from '@/lib/auth/acciones'
 import type { RolIntegrante } from '@/lib/supabase/tipos'
 
 /**

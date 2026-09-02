@@ -6,7 +6,7 @@
 
 -- =====================================================================
 -- NIDO PJB — Esquema de base de datos (contrato de Fase 1)
--- Nodo de Investigación y Datos Observados del Instituto Pedro Justo Berrío
+-- Nodo de Investigación y Datos Observados del Instituto Salesiano Pedro Justo Berrío
 --
 -- Feature : 001-plataforma-ambiental-pjb
 -- Motor   : PostgreSQL 15 (Supabase)

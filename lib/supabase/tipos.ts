@@ -37,6 +37,11 @@ export type Integrante = {
   autorizacion_acudiente: boolean
   activo: boolean
   creado_en: string
+  /** Grado escolar o cargo. Texto libre: cada colegio los nombra distinto. */
+  grado: string | null
+  /** Ruta en la cubeta PRIVADA `fotos-equipo`. No es un enlace utilizable. */
+  foto_ruta: string | null
+  semblanza: string | null
 }
 
 export type LugarMedicion = {
@@ -213,6 +218,10 @@ export type IntegrantePublico = {
   id: string
   nombre: string
   rol: RolIntegrante
+  grado: string | null
+  foto_ruta: string | null
+  semblanza: string | null
+  creado_en: string
 }
 
 export type PuntoDestacadoPublico = {

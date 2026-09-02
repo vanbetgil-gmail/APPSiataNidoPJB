@@ -1,0 +1,173 @@
+import type { Metadata } from 'next'
+import Link from 'next/link'
+import { FormularioAcceso } from './FormularioAcceso'
+
+export const metadata: Metadata = {
+  title: 'Ingresar',
+  description: 'Acceso para integrantes del proyecto NIDO PJB.',
+}
+
+/**
+ * Pantalla de acceso (T042).
+ *
+ * ── Por qué vive dentro del grupo público ────────────────────────────────
+ *
+ * Para que conserve la barra con las cuatro subpestañas. Quien llega aquí sin
+ * ser del equipo —un acudiente que siguió un enlace, por ejemplo— no debería
+ * quedarse en un callejón sin salida: tiene que poder volver al mapa o a
+ * Biodiversidad con un toque.
+ *
+ * Estar en `(publico)` es además correcto de fondo: esta página no exige
+ * sesión. Ponerla en `(privado)` la habría hecho redirigirse a sí misma.
+ *
+ * ── El diseño ────────────────────────────────────────────────────────────
+ *
+ * Dos mitades dentro de una tarjeta: a la izquierda una ventana serena que
+ * dice de qué va el proyecto, a la derecha el formulario y nada más. Las
+ * formas orgánicas son decorativas —van con `aria-hidden`— y existen para dar
+ * calma, no para llamar la atención.
+ *
+ * En móvil el panel izquierdo se recoge y queda solo el formulario, que es lo
+ * que se necesita ahí.
+ *
+ * ── Por qué no hay campo de contraseña ───────────────────────────────────
+ *
+ * El acceso es por enlace de un solo uso al correo institucional. La mayoría
+ * del equipo son menores de edad, y una contraseña es algo que se olvida, se
+ * reutiliza de otro sitio y se puede filtrar. Sin contraseñas no hay nada de
+ * eso que gestionar (research.md R-005).
+ */
+export default async function PaginaLogin({
+  searchParams,
+}: {
+  searchParams: Promise<{ siguiente?: string; error?: string }>
+}) {
+  const { siguiente, error } = await searchParams
+
+  // FR-015 escenario 6: tras autenticarse hay que llegar a la pantalla que se
+  // pidió, no a la portada. Solo se aceptan rutas internas: una URL absoluta
+  // aquí sería un redirector abierto hacia cualquier sitio.
+  const rutaSolicitada =
+    siguiente && siguiente.startsWith('/') && !siguiente.startsWith('//') ? siguiente : '/tableros'
+
+  return (
+    <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:py-12">
+      <div
+        className="grid overflow-hidden rounded-[--radius-suave] border lg:grid-cols-2"
+        style={{ borderColor: 'var(--color-borde)', backgroundColor: 'var(--color-superficie)' }}
+      >
+        {/* ── Panel de bienvenida ───────────────────────────────────── */}
+        <aside
+          className="relative hidden flex-col justify-between overflow-hidden p-10 lg:flex"
+          style={{ backgroundColor: 'var(--color-salvia)' }}
+        >
+          <div
+            aria-hidden
+            className="forma-suave"
+            style={{
+              width: '18rem',
+              height: '18rem',
+              top: '-5rem',
+              right: '-6rem',
+              backgroundColor: 'var(--color-crema)',
+              opacity: 0.9,
+            }}
+          />
+          <div
+            aria-hidden
+            className="forma-suave"
+            style={{
+              width: '26rem',
+              height: '26rem',
+              bottom: '-13rem',
+              left: '-9rem',
+              backgroundColor: 'var(--color-salvia-clara)',
+            }}
+          />
+
+          <p className="antetitulo relative">— Una ventana al cuidado</p>
+
+          <div className="relative">
+            <h1 className="text-5xl" style={{ color: 'var(--color-texto)' }}>
+              El aire
+              <br />
+              <em style={{ color: 'var(--color-marca)' }}>también</em>
+              <br />
+              enseña.
+            </h1>
+
+            <p
+              className="mt-6 max-w-xs text-[0.95rem] leading-relaxed"
+              style={{ color: 'var(--color-texto-suave)' }}
+            >
+              Un espacio compartido para observar el campus, conversar en familia y tomar
+              decisiones tranquilas.
+            </p>
+          </div>
+
+          <p className="relative text-xs" style={{ color: 'var(--color-texto-suave)' }}>
+            Para familias, estudiantes y el equipo PJB
+          </p>
+        </aside>
+
+        {/* ── Formulario ────────────────────────────────────────────── */}
+        <main className="flex items-center justify-center p-8 sm:p-12">
+          <div className="w-full max-w-sm">
+            <p
+              className="mb-6 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs"
+              style={{ backgroundColor: 'var(--color-salvia-clara)', color: 'var(--color-marca)' }}
+            >
+              <span aria-hidden>◍</span> Acceso al equipo
+            </p>
+
+            <h2 className="text-3xl sm:text-4xl">Hola, qué bueno verte.</h2>
+            <p className="mt-3 mb-8 text-sm" style={{ color: 'var(--color-texto-suave)' }}>
+              Ingresa para registrar mediciones y documentar la biodiversidad del colegio.
+            </p>
+
+            {error && (
+              <p
+                role="alert"
+                className="mb-6 rounded-[--radius-tarjeta] border px-4 py-3 text-sm leading-relaxed"
+                style={{
+                  borderColor: 'var(--color-ica-sensibles)',
+                  backgroundColor: 'var(--color-crema-clara)',
+                  color: 'var(--color-texto)',
+                }}
+              >
+                {error === 'enlace_invalido'
+                  ? 'Ese enlace ya se usó o caducó. Pida uno nuevo abajo.'
+                  : 'No se pudo completar el acceso. Inténtelo de nuevo.'}
+              </p>
+            )}
+
+            <FormularioAcceso rutaSolicitada={rutaSolicitada} />
+
+            <div className="my-7 flex items-center gap-4">
+              <span className="h-px flex-1" style={{ backgroundColor: 'var(--color-borde)' }} />
+              <span aria-hidden className="text-xs" style={{ color: 'var(--color-texto-suave)' }}>
+                ○
+              </span>
+              <span className="h-px flex-1" style={{ backgroundColor: 'var(--color-borde)' }} />
+            </div>
+
+            <Link
+              href="/"
+              className="flex w-full items-center justify-center gap-2 rounded-full border px-5 py-3.5 text-sm no-underline"
+              style={{ borderColor: 'var(--color-borde)', color: 'var(--color-texto)' }}
+            >
+              Ver el mapa sin cuenta
+            </Link>
+
+            <p
+              className="mt-7 flex items-center justify-center gap-2 text-center text-xs"
+              style={{ color: 'var(--color-texto-suave)' }}
+            >
+              <span aria-hidden>⛉</span> Tus datos se cuidan con privacidad
+            </p>
+          </div>
+        </main>
+      </div>
+    </div>
+  )
+}
