@@ -64,15 +64,26 @@ create trigger trg_dominio_integrante
 
 -- Debe existir siempre al menos un responsable activo.
 -- Sin él, ninguna ficha nueva podría publicarse (FR-038b).
+--
+-- La primera comprobación no es un adorno: sin ella, cualquier
+-- actualización de la ficha del ÚNICO responsable falla, incluidas las
+-- que lo dejan igual que estaba, porque no existe «otro» que lo releve.
 create or replace function garantizar_responsable_activo()
 returns trigger language plpgsql as $$
 begin
+  -- El cambio no toca la condición que protegemos.
+  if new.rol = 'responsable' and new.activo then
+    return new;
+  end if;
+
+  -- Aquí la fila deja de ser responsable activo: hace falta un relevo.
   if not exists (
     select 1 from integrante
     where rol = 'responsable' and activo and id <> old.id
   ) then
     raise exception 'Debe permanecer al menos un responsable activo';
   end if;
+
   return new;
 end $$;
 
