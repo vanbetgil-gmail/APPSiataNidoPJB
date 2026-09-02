@@ -30,12 +30,16 @@ export const metadata: Metadata = {
  * En móvil el panel izquierdo se recoge y queda solo el formulario, que es lo
  * que se necesita ahí.
  *
- * ── Por qué no hay campo de contraseña ───────────────────────────────────
+ * ── Sobre el acceso con contraseña ───────────────────────────────────────
  *
- * El acceso es por enlace de un solo uso al correo institucional. La mayoría
- * del equipo son menores de edad, y una contraseña es algo que se olvida, se
- * reutiliza de otro sitio y se puede filtrar. Sin contraseñas no hay nada de
- * eso que gestionar (research.md R-005).
+ * El diseño original usaba enlaces de un solo uso al correo (R-005). Se
+ * cambió a contraseña porque el acceso ocurre en clase, con el grupo entero
+ * esperando, y depender de que once personas abran su bandeja de entrada en
+ * ese momento detenía la sesión cada vez que un correo tardaba o caía en
+ * «no deseado» (R-005a).
+ *
+ * Las contraseñas iniciales las reparte el docente responsable y cada quien
+ * la cambia desde /cuenta.
  */
 export default async function PaginaLogin({
   searchParams,

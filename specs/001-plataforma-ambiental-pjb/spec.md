@@ -260,6 +260,7 @@ Un visitante que recorre el mapa quiere entender de dónde salen los datos. Encu
 - **FR-013**: El sistema DEBE soportar al menos 10 cuentas de integrante y permitir que el responsable del proyecto agregue o revoque integrantes desde la propia aplicación, sin intervención técnica.
 - **FR-013a**: El alta de un integrante DEBE hacerla el responsable del proyecto registrando su correo institucional en una lista de autorizados; NO DEBE existir autorregistro.
 - **FR-014**: El sistema DEBE distinguir al menos dos niveles de permiso: integrante (registra mediciones y fichas) y responsable del proyecto (además administra el equipo, los lugares y los medidores, y aprueba la primera publicación de cada ficha de biodiversidad).
+- **FR-014a**: El ingreso DEBE hacerse con contraseña, sin depender de que llegue un correo (R-005a). El responsable del proyecto entrega la contraseña inicial y DEBE poder restablecer la de cualquier integrante que la olvide, sin intervención técnica y sin usar el correo. Cada integrante DEBE poder cambiar la suya desde la aplicación.
 - **FR-015**: Toda función de registro, edición y consulta de tableros DEBE requerir sesión iniciada.
 - **FR-016**: El sistema DEBE mantener la sesión iniciada entre usos de la aplicación y ofrecer cierre de sesión explícito.
 

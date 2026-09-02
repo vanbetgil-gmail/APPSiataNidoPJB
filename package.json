@@ -18,6 +18,7 @@
     "db:reset": "supabase db reset",
     "db:tipos": "supabase gen types typescript --local > lib/supabase/tipos.ts",
     "migrar:historico": "tsx scripts/migrar-historico.ts",
+    "asignar-contrasenas": "tsx scripts/asignar-contrasenas.ts",
     "verificar": "tsx scripts/verificar-conexion.ts",
     "revisar": "tsx scripts/revisar-antes-de-subir.ts",
     "cargar-equipo": "tsx scripts/cargar-equipo.ts"

@@ -30,6 +30,7 @@ const RUTAS_PRIVADAS = [
   '/fichas',
   '/revision',
   '/admin',
+  '/cuenta',
 ]
 
 export async function middleware(peticion: NextRequest) {

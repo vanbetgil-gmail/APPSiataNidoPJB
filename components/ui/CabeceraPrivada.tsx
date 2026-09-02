@@ -46,10 +46,12 @@ export function CabeceraPrivada({
         </nav>
 
         <div className="flex items-center gap-3 text-sm">
-          <span className="text-[color:var(--color-texto-suave)]">
+          {/* El nombre lleva a la cuenta: es donde se cambia la contraseña,
+              y es el sitio donde la gente la busca. */}
+          <Enlace href="/cuenta">
             {nombre}
             {esResponsable && ' · responsable'}
-          </span>
+          </Enlace>
           <form action={cerrarSesion}>
             <button
               type="submit"

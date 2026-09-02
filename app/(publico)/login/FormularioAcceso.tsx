@@ -1,42 +1,22 @@
 'use client'
 
-import { useActionState } from 'react'
-import { solicitarEnlace, type EstadoFormulario } from '@/lib/auth/acciones'
+import { useActionState, useState } from 'react'
+import { iniciarSesion, type EstadoFormulario } from '@/lib/auth/acciones'
 
 const INICIAL: EstadoFormulario = { tipo: 'inicial' }
 
 /**
  * Formulario de acceso (T042) — FR-011, FR-012.
  *
- * Los tres motivos de rechazo se muestran con mensajes DISTINTOS y con tono
+ * Los motivos de rechazo se muestran con mensajes DISTINTOS y con tono
  * distinto: el dominio ajeno es un error de quien escribe; no estar en la
  * lista no lo es, y el mensaje no debe hacer sentir a nadie que se equivocó.
  */
 export function FormularioAcceso({ rutaSolicitada }: { rutaSolicitada: string }) {
-  const [estado, accion, enviando] = useActionState(solicitarEnlace, INICIAL)
+  const [estado, accion, enviando] = useActionState(iniciarSesion, INICIAL)
+  const [visible, setVisible] = useState(false)
 
-  if (estado.tipo === 'enviado') {
-    return (
-      <div
-        role="status"
-        className="rounded-[--radius-suave] border p-6"
-        style={{
-          borderColor: 'var(--color-salvia)',
-          backgroundColor: 'var(--color-salvia-clara)',
-        }}
-      >
-        <h2 className="text-lg font-semibold">Revise su correo</h2>
-        <p className="mt-2 text-sm leading-relaxed">
-          Enviamos un enlace de acceso a <strong>{estado.correo}</strong>. Ábralo desde este mismo
-          dispositivo y entrará directamente, sin contraseña.
-        </p>
-        <p className="mt-3 text-sm text-[color:var(--color-texto-suave)]">
-          El enlace sirve una sola vez y caduca en una hora. Si no llega en unos minutos, revise la
-          carpeta de correo no deseado.
-        </p>
-      </div>
-    )
-  }
+  const hayFallo = estado.tipo === 'rechazado' || estado.tipo === 'error'
 
   return (
     <form action={accion} className="flex flex-col gap-4">
@@ -51,23 +31,57 @@ export function FormularioAcceso({ rutaSolicitada }: { rutaSolicitada: string })
           name="correo"
           type="email"
           required
-          autoComplete="email"
+          autoComplete="username"
           inputMode="email"
           placeholder="nombre@colegio.edu.co"
-          aria-describedby={estado.tipo !== 'inicial' ? 'mensaje-acceso' : undefined}
-          aria-invalid={estado.tipo === 'rechazado' || estado.tipo === 'error'}
+          aria-describedby={hayFallo ? 'mensaje-acceso' : undefined}
+          aria-invalid={hayFallo}
           className="w-full rounded-[--radius-tarjeta] border px-4 py-3.5 text-base transition"
-          style={{
-            borderColor: 'var(--color-borde)',
-            backgroundColor: 'var(--color-superficie)',
-          }}
+          style={{ borderColor: 'var(--color-borde)', backgroundColor: 'var(--color-superficie)' }}
         />
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <label htmlFor="contrasena" className="text-sm font-medium">
+          Contraseña
+        </label>
+
+        <div className="relative">
+          <input
+            id="contrasena"
+            name="contrasena"
+            /*
+             * El botón del ojo existe por los teclados de celular: en una
+             * pantalla táctil, escribir a ciegas una contraseña que le
+             * acaban de dictar es la principal fuente de intentos fallidos.
+             */
+            type={visible ? 'text' : 'password'}
+            required
+            autoComplete="current-password"
+            aria-describedby={hayFallo ? 'mensaje-acceso' : undefined}
+            aria-invalid={hayFallo}
+            className="w-full rounded-[--radius-tarjeta] border py-3.5 pl-4 pr-12 text-base transition"
+            style={{ borderColor: 'var(--color-borde)', backgroundColor: 'var(--color-superficie)' }}
+          />
+
+          <button
+            type="button"
+            onClick={() => setVisible((v) => !v)}
+            aria-pressed={visible}
+            className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full px-3 py-2 text-xs"
+            style={{ color: 'var(--color-texto-suave)' }}
+          >
+            {visible ? 'Ocultar' : 'Ver'}
+          </button>
+        </div>
+
         <p className="text-xs" style={{ color: 'var(--color-texto-suave)' }}>
-          Le enviaremos un enlace de un solo uso. Sin contraseñas que recordar.
+          La primera vez use la que le entregó el docente responsable. Después puede cambiarla desde
+          su cuenta.
         </p>
       </div>
 
-      {(estado.tipo === 'rechazado' || estado.tipo === 'error') && (
+      {hayFallo && (
         <p
           id="mensaje-acceso"
           role="alert"
@@ -92,7 +106,7 @@ export function FormularioAcceso({ rutaSolicitada }: { rutaSolicitada: string })
         className="flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 font-medium text-white transition disabled:opacity-60"
         style={{ backgroundColor: 'var(--color-bosque)' }}
       >
-        {enviando ? 'Enviando…' : 'Entrar al observatorio'}
+        {enviando ? 'Entrando…' : 'Entrar al observatorio'}
         {!enviando && <span aria-hidden>→</span>}
       </button>
     </form>

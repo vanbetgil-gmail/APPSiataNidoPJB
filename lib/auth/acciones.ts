@@ -2,47 +2,75 @@
 
 import { createServerClient } from '@supabase/ssr'
 import type { CookieOptions } from '@supabase/ssr'
-import { cookies, headers } from 'next/headers'
+import { cookies } from 'next/headers'
+import { redirect } from 'next/navigation'
+import { LARGO_MINIMO_CONTRASENA } from '@/lib/auth/reglas'
 import { normalizarCorreo, verificarAcceso } from '@/lib/auth/verificarAcceso'
 import type { Database } from '@/lib/supabase/tipos'
 
 /**
- * Acción de servidor para solicitar el enlace de acceso (T040) — R-005.
+ * Acciones de acceso — FR-011, FR-012, R-005a.
  *
- * ── Por qué enlace mágico y no contraseña ────────────────────────────────
+ * ── Por qué contraseña y no enlace al correo ─────────────────────────────
  *
- * No hay contraseñas que gestionar, lo cual importa especialmente tratándose
- * de menores de edad: nada que olvidar, nada que reutilizar de otro sitio,
- * nada que filtrar. Y no depende del proveedor de identidad del colegio, que
- * todavía está por confirmar (A-006).
+ * El diseño original usaba enlaces de un solo uso (R-005), y para menores de
+ * edad tenía a su favor que no hay contraseñas que olvidar ni reutilizar.
  *
- * ── Por qué la verificación va aquí y no en el cliente ───────────────────
+ * En la práctica no se sostuvo. El acceso se usa en clase, con el grupo
+ * entero esperando, y depender de que once personas abran su bandeja de
+ * entrada en ese momento convierte cada sesión en un problema de logística.
+ * Si el correo tarda, o cae en «no deseado», o el estudiante no recuerda la
+ * contraseña de su correo institucional, la clase se detiene.
  *
- * La comprobación de dominio y de pertenencia ocurre EN EL SERVIDOR, antes de
- * pedirle nada a Supabase. Si se hiciera en el navegador, bastaría con abrir
- * las herramientas de desarrollo para saltársela.
+ * La contraseña traslada esa fragilidad a un sitio que el colegio controla:
+ * el docente responsable puede restablecerla en el momento.
  *
- * La barrera definitiva, en todo caso, no es esta: es RLS. Aunque alguien
- * consiguiera una sesión, `es_integrante_activo()` seguiría negándole el
- * acceso a los datos.
+ * ── Lo que NO cambia ─────────────────────────────────────────────────────
+ *
+ * La verificación previa sigue igual: dominio institucional y pertenencia al
+ * equipo se comprueban EN EL SERVIDOR antes de pedirle nada a Supabase. Y la
+ * barrera definitiva sigue siendo RLS, no esto: aunque alguien consiguiera
+ * una sesión, `es_integrante_activo()` le negaría los datos igualmente.
  */
 
 export type EstadoFormulario =
   | { tipo: 'inicial' }
-  | { tipo: 'enviado'; correo: string }
   | { tipo: 'rechazado'; mensaje: string; motivo: 'dominio' | 'no_autorizado' | 'inactivo' }
   | { tipo: 'error'; mensaje: string }
 
-export async function solicitarEnlace(
+function clienteConCookies(almacen: Awaited<ReturnType<typeof cookies>>) {
+  return createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll: () => almacen.getAll(),
+        setAll: (nuevas: { name: string; value: string; options: CookieOptions }[]) => {
+          try {
+            nuevas.forEach(({ name, value, options }) => almacen.set(name, value, options))
+          } catch {
+            // Los componentes de servidor no siempre pueden escribir cookies.
+          }
+        },
+      },
+    }
+  )
+}
+
+export async function iniciarSesion(
   _anterior: EstadoFormulario,
   formulario: FormData
 ): Promise<EstadoFormulario> {
   const correo = normalizarCorreo(String(formulario.get('correo') ?? ''))
-  const rutaSolicitada = String(formulario.get('rutaSolicitada') ?? '/tableros')
+  const contrasena = String(formulario.get('contrasena') ?? '')
+  const rutaBruta = String(formulario.get('rutaSolicitada') ?? '/tableros')
 
-  if (!correo) {
-    return { tipo: 'error', mensaje: 'Escriba su correo institucional.' }
-  }
+  // Solo rutas internas: una URL absoluta aquí sería un redirector abierto.
+  const rutaSolicitada =
+    rutaBruta.startsWith('/') && !rutaBruta.startsWith('//') ? rutaBruta : '/tableros'
+
+  if (!correo) return { tipo: 'error', mensaje: 'Escriba su correo institucional.' }
+  if (!contrasena) return { tipo: 'error', mensaje: 'Escriba su contraseña.' }
 
   const acceso = await verificarAcceso(correo)
 
@@ -57,64 +85,76 @@ export async function solicitarEnlace(
       return { tipo: 'error', mensaje: acceso.mensaje }
   }
 
-  const almacenCookies = await cookies()
-  const supabase = createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => almacenCookies.getAll(),
-        setAll: (nuevas: { name: string; value: string; options: CookieOptions }[]) => {
-          try {
-            nuevas.forEach(({ name, value, options }) => almacenCookies.set(name, value, options))
-          } catch {
-            // Los componentes de servidor no siempre pueden escribir cookies.
-          }
-        },
-      },
+  const supabase = clienteConCookies(await cookies())
+  const { error } = await supabase.auth.signInWithPassword({ email: correo, password: contrasena })
+
+  if (error) {
+    /*
+     * Un único mensaje para «contraseña incorrecta».
+     *
+     * A estas alturas ya sabemos que el correo pertenece al equipo, así que
+     * distinguir «esa no es tu contraseña» de «esa cuenta no existe» no
+     * añadiría nada útil y sí serviría para confirmar cuentas desde fuera.
+     *
+     * El límite de intentos lo aplica Supabase; si se supera, su propio
+     * mensaje lo indica y conviene dejarlo pasar tal cual.
+     */
+    const demasiados = /rate|too many|limit/i.test(error.message)
+    return {
+      tipo: 'error',
+      mensaje: demasiados
+        ? 'Demasiados intentos seguidos. Espere un minuto y vuelva a intentarlo.'
+        : 'La contraseña no es correcta. Si la olvidó, pídale al docente responsable que se la restablezca.',
     }
-  )
+  }
 
-  const cabeceras = await headers()
-  const origen =
-    process.env.NEXT_PUBLIC_URL_SITIO ??
-    `https://${cabeceras.get('host') ?? 'localhost:3000'}`
+  redirect(rutaSolicitada)
+}
 
-  const { error } = await supabase.auth.signInWithOtp({
-    email: correo,
-    options: {
-      // FR-013a: no hay autorregistro. Si el correo no tiene ya cuenta de
-      // autenticación, Supabase NO debe crearla. El alta la hace el
-      // responsable desde /admin/integrantes.
-      shouldCreateUser: false,
-      emailRedirectTo: `${origen}/auth/callback?siguiente=${encodeURIComponent(rutaSolicitada)}`,
-    },
-  })
+/**
+ * Cambio de contraseña de la propia cuenta (FR-014a).
+ *
+ * Supabase exige una sesión válida para `updateUser`, así que esta acción
+ * solo puede ejecutarla quien ya entró. No hace falta pedir la contraseña
+ * anterior: tener la sesión abierta ya lo demuestra.
+ */
+export type EstadoContrasena =
+  | { tipo: 'inicial' }
+  | { tipo: 'cambiada' }
+  | { tipo: 'error'; mensaje: string }
+
+export async function cambiarContrasena(
+  _anterior: EstadoContrasena,
+  formulario: FormData
+): Promise<EstadoContrasena> {
+  const nueva = String(formulario.get('nueva') ?? '')
+  const repetida = String(formulario.get('repetida') ?? '')
+
+  if (nueva.length < LARGO_MINIMO_CONTRASENA) {
+    return {
+      tipo: 'error',
+      mensaje: `La contraseña debe tener al menos ${LARGO_MINIMO_CONTRASENA} caracteres.`,
+    }
+  }
+
+  if (nueva !== repetida) {
+    return { tipo: 'error', mensaje: 'Las dos contraseñas no coinciden.' }
+  }
+
+  const supabase = clienteConCookies(await cookies())
+  const { error } = await supabase.auth.updateUser({ password: nueva })
 
   if (error) {
     return {
       tipo: 'error',
-      mensaje:
-        'No se pudo enviar el enlace. Si el problema sigue, avise al docente responsable.',
+      mensaje: 'No se pudo cambiar la contraseña. Vuelva a entrar e inténtelo de nuevo.',
     }
   }
 
-  return { tipo: 'enviado', correo }
+  return { tipo: 'cambiada' }
 }
 
 export async function cerrarSesion(): Promise<void> {
-  const almacenCookies = await cookies()
-  const supabase = createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => almacenCookies.getAll(),
-        setAll: (nuevas: { name: string; value: string; options: CookieOptions }[]) => {
-          nuevas.forEach(({ name, value, options }) => almacenCookies.set(name, value, options))
-        },
-      },
-    }
-  )
+  const supabase = clienteConCookies(await cookies())
   await supabase.auth.signOut()
 }

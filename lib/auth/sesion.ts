@@ -16,6 +16,7 @@ import type { RolIntegrante } from '@/lib/supabase/tipos'
 export interface IntegranteSesion {
   id: string
   nombre: string
+  correo: string
   rol: RolIntegrante
   esResponsable: boolean
 }
@@ -32,7 +33,7 @@ export async function integranteActual(): Promise<IntegranteSesion | null> {
   // La política `integrante_se_ve_a_si_mismo` permite esta lectura.
   const { data } = await supabase
     .from('integrante')
-    .select('id, nombre, rol, activo')
+    .select('id, nombre, correo, rol, activo')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -41,6 +42,7 @@ export async function integranteActual(): Promise<IntegranteSesion | null> {
   return {
     id: data.id,
     nombre: data.nombre,
+    correo: data.correo,
     rol: data.rol,
     esResponsable: data.rol === 'responsable',
   }

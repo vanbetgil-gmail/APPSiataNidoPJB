@@ -142,6 +142,28 @@ El flujo: la persona escribe su correo → si el dominio no coincide con el conf
 
 ---
 
+## R-005a. Revisión: se cambia a contraseña
+
+**Fecha**: 2026-09-02. **Revoca la decisión de R-005**, no sus alternativas descartadas.
+
+**Qué pasó**: el enlace mágico no llegó a funcionar. El SMTP institucional (Exim sobre cPanel, `mail.institutopedrojustoberrio.com:465`) responde y autentica, pero el envío seguía fallando, y el equipo pidió no depender del correo.
+
+**La razón de fondo pesa más que el fallo técnico.** El acceso ocurre en clase, con el grupo entero esperando. Depender de que once personas abran su bandeja de entrada en ese momento convierte cada sesión en un problema de logística: si un correo tarda, cae en «no deseado», o el estudiante no recuerda la contraseña de su *correo*, la clase se detiene. Es una dependencia externa en el punto exacto donde menos tolerancia hay.
+
+**Decisión**: **contraseña con Supabase Auth**. El docente responsable reparte contraseñas iniciales generadas por `pnpm asignar-contrasenas`, y cada quien la cambia desde `/cuenta` (FR-014a).
+
+**Lo que esto cuesta, dicho sin adornos**: R-005 tenía razón en que las contraseñas de menores se olvidan, se reutilizan y se comparten. Eso sigue siendo cierto y ahora es un problema real del proyecto. Se mitiga así:
+
+- La recuperación no depende del correo: el responsable restablece la contraseña de una persona con `pnpm asignar-contrasenas <correo>`. Traslada la fragilidad a alguien que está en el salón.
+- Las iniciales son de un solo uso en la práctica, y `/cuenta` existe precisamente para que dejen de serlo el primer día.
+- La autoría por persona (FR-023, FR-043) sigue intacta: cada quien tiene su cuenta. Lo que se descartó en R-005 fue la contraseña *compartida*, y eso sigue descartado.
+
+**Lo que NO cambia**: la verificación de dominio y de pertenencia sigue ocurriendo en el servidor antes de tocar Supabase, no hay autorregistro (FR-013a), y la barrera real sigue siendo RLS.
+
+**Pendiente**: el SMTP se deja configurado. Hace falta igualmente para los avisos de revisión de fichas, y si algún día se resuelve, el enlace mágico puede volver como segunda vía sin quitar la contraseña.
+
+---
+
 ## R-006. Registro sin conexión y sincronización
 
 **Incógnita**: FR-027, FR-027a, FR-027b y FR-045c exigen registrar mediciones sin conexión en talleres con mala señal, sobrevivir al cierre de la aplicación y sincronizar sin duplicar.

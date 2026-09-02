@@ -342,15 +342,26 @@ create table punto_interes_didactico (
 -- =====================================================================
 -- Funciones auxiliares de autorización
 -- =====================================================================
+-- SECURITY DEFINER es obligatorio, no una preferencia: estas funciones
+-- consultan `integrante`, y las políticas de `integrante` las invocan a
+-- ellas. Sin SECURITY DEFINER el select interno vuelve a pasar por RLS y
+-- la evaluacion se recursa hasta «stack depth limit exceeded», dejando
+-- inutilizable toda consulta autenticada (migración 0008).
+--
+-- `set search_path = public` acompaña siempre a SECURITY DEFINER: sin él,
+-- quien la invoque podría anteponer un esquema con su propia tabla
+-- `integrante` y decidir la respuesta.
 create or replace function es_integrante_activo()
-returns boolean language sql stable as $$
+returns boolean language sql stable
+security definer set search_path = public as $$
   select exists (
     select 1 from integrante where id = auth.uid() and activo
   );
 $$;
 
 create or replace function es_responsable()
-returns boolean language sql stable as $$
+returns boolean language sql stable
+security definer set search_path = public as $$
   select exists (
     select 1 from integrante
     where id = auth.uid() and activo and rol = 'responsable'
