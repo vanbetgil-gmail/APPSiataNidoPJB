@@ -38,6 +38,8 @@ Esta especificación se construyó sobre el archivo real, que contiene:
 - **7 estudiantes** que han tomado mediciones, identificados hoy por el alias de su correo personal.
 - **Medidores** identificados por número de serie, anotados de forma inconsistente como `31`–`34` y también como `9031`–`9034`.
 
+De esos 135 registros, **98 son importables** —los que traen lugar y medidor, repartidos en 15 de las 22 jornadas— y **37 no**, por venir sin ninguno de los dos. Nótese que los 5 lugares de la lista de arriba suman exactamente 98: las 37 filas restantes no aparecen ahí porque no tienen lugar que contar. El desglose está en `contracts/import-export.md` §4b.
+
 **Problemas de calidad de datos detectados** que la plataforma debe eliminar en adelante:
 
 - Valores de temperatura capturados como texto (`27°`) en columnas numéricas.
@@ -45,6 +47,7 @@ Esta especificación se construyó sobre el archivo real, que contiene:
 - El mismo medidor identificado con dos series distintas (`32` frente a `9032`).
 - Nombres de lugar con espacios sobrantes y variantes de mayúsculas (`Artes  graficas `).
 - Un lugar con nombre truncado o ambiguo (`Op`).
+- **37 registros sin lugar ni número de serie**, que por eso no se pueden ubicar ni comparar. Es el defecto de mayor impacto del archivo: cuesta el 27 % de los datos.
 - Estructura ancha de 98 columnas con bloques repetidos por medición, imposible de mantener a mano.
 
 ---
@@ -278,10 +281,11 @@ Un visitante que recorre el mapa quiere entender de dónde salen los datos. Encu
 
 ### Migración del histórico e importación de datos
 
-- **FR-028**: El sistema DEBE incorporar las 135 mediciones históricas registradas entre agosto y octubre de 2025, conservando lugar, medidor, autor, fecha y hora de cada una.
+- **FR-028**: El sistema DEBE incorporar las mediciones históricas registradas entre agosto y octubre de 2025 que traigan lugar y medidor, conservando lugar, medidor, autor, fecha y hora de cada una. Sobre el archivo real son 98 de 135, agrupadas en 15 jornadas: las 37 restantes carecen de lugar y de medidor en el origen y se rechazan de forma explícita y motivada (FR-031), no en silencio.
 - **FR-029**: La migración DEBE normalizar los nombres de lugar, unificar las identidades duplicadas de medidores y convertir a número los valores capturados como texto.
-- **FR-030**: La migración DEBE atribuir cada registro histórico al integrante correspondiente del equipo, vinculando cada uno de los 7 alias de correo personal del histórico con el correo institucional de esa misma persona.
+- **FR-030**: La migración DEBE atribuir cada registro histórico al integrante correspondiente del equipo, vinculando con el correo institucional de su titular cada uno de los alias de correo personal del histórico que tenga titular identificado.
 - **FR-030a**: El sistema DEBE conservar la vinculación alias personal → integrante institucional como un dato consultable, de modo que la trazabilidad del histórico pueda auditarse después de la migración.
+- **FR-030b**: La migración DEBE importar sin autor los registros cuyo alias no tenga titular identificado, y aquellos que no traigan alias, descartando el alias en bruto en lugar de almacenarlo. Un correo personal sin titular a quien corresponda es un dato personal sin finalidad, y conservarlo contradiría la minimización que exige el tratamiento de datos de menores.
 - **FR-031**: Todo registro histórico que no pueda normalizarse con certeza DEBE quedar marcado como dato dudoso y excluible de los análisis, en lugar de descartarse silenciosamente.
 - **FR-031a**: El sistema DEBE permitir importar archivos de hoja de cálculo con la estructura del histórico para cargas masivas, de forma repetible y no solo en la migración inicial.
 - **FR-031b**: Toda importación DEBE aplicar las mismas validaciones y normalizaciones que el registro manual, y DEBE presentar una previsualización con los registros aceptados, los corregidos y los rechazados antes de confirmarse.
@@ -374,7 +378,7 @@ Un visitante que recorre el mapa quiere entender de dónde salen los datos. Encu
 - **SC-004**: Un integrante registra una medición completa de once variables en menos de 60 segundos desde el celular, estando de pie en el sitio de medición.
 - **SC-005**: Una jornada completa de 7 mediciones se registra en menos de 10 minutos de trabajo efectivo, frente al proceso actual de formulario y consolidación manual.
 - **SC-006**: El 100 % de los valores numéricos almacenados quedan como números, sin ningún registro con símbolos o texto en campos numéricos.
-- **SC-007**: Los 135 registros históricos quedan disponibles en la aplicación, con lugar, medidor y autor normalizados, y con el conteo total coincidiendo exactamente con el archivo de origen.
+- **SC-007**: Los registros históricos que traen lugar y medidor —98 de los 135 del archivo— quedan disponibles en la aplicación, normalizados, en 15 jornadas. Los 37 restantes no se importan y quedan enumerados con su motivo, de modo que 98 + 37 devuelve exactamente el conteo del archivo de origen y ningún registro desaparece sin dejar rastro.
 - **SC-008**: Cero medidores con identidad duplicada y cero lugares con variantes de nombre tras la migración.
 - **SC-009**: Un integrante obtiene la comparación de una variable entre dos lugares en un rango de fechas en menos de 4 interacciones.
 - **SC-010**: Un integrante prepara y envía a revisión una ficha de biodiversidad con foto y ubicación en menos de 3 minutos desde el celular, y el punto aparece en el mapa público en el momento en que el responsable la aprueba.
@@ -390,7 +394,7 @@ Un visitante que recorre el mapa quiere entender de dónde salen los datos. Encu
 - **SC-013**: Todas las pantallas se usan sin desplazamiento horizontal en un teléfono de 360 px de ancho.
 - **SC-014**: El equipo agrega o revoca un integrante sin necesidad de intervención de un desarrollador.
 - **SC-015**: Una importación de hoja de cálculo muestra su previsualización de aceptados, corregidos y rechazados antes de confirmarse, y reimportar el mismo archivo no genera ni un solo registro duplicado.
-- **SC-016**: Tras la migración, cada una de las 135 mediciones históricas queda atribuida a un integrante identificado por su correo institucional, sin ningún registro huérfano.
+- **SC-016**: Tras la migración están las 98 mediciones históricas que traían lugar y medidor, en 15 jornadas, cada una con su fecha, hora, lugar, medidor y valores. Las 79 cuyo alias tiene titular identificado quedan atribuidas a su integrante por correo institucional; las 19 restantes quedan sin autor de forma explícita y consultable, y de ninguna de ellas se conserva el alias de correo personal. Las 37 rechazadas por falta de lugar y medidor aparecen enumeradas con su motivo en el informe de la migración.
 
 ---
 
@@ -403,7 +407,7 @@ Un visitante que recorre el mapa quiere entender de dónde salen los datos. Encu
 - **A-005**: Los datos de mediciones son de carácter escolar y público; no contienen información personal sensible más allá de la autoría de cada registro.
 - **A-005a**: Se asume que la mayoría de los 10 integrantes son menores de edad. La recolección y custodia de las autorizaciones de los acudientes es responsabilidad del colegio; la aplicación solo registra si esa autorización existe y condiciona a ella la exposición pública del nombre (FR-051d).
 - **A-006**: El colegio cuenta con correos institucionales para los 10 integrantes. La aplicación se publicará en el **dominio raíz** **institutopedrojustoberrio.com** —decisión confirmada por el equipo el 2026-08-31—, con `www` redirigiendo a él. Apuntar los registros A y CNAME no afecta a los MX, así que el correo institucional del dominio sigue funcionando igual. El dominio de los correos institucionales se asume `@salesianos.edu.co` —el que usa hoy el equipo docente y con el que se solicitó este trabajo—; si el colegio emite las cuentas del proyecto bajo `@institutopedrojustoberrio.com`, basta cambiar el valor configurable de FR-011 sin ningún otro ajuste a la especificación.
-- **A-006a**: El responsable del proyecto entregará antes de la migración dos listas: los 10 correos institucionales autorizados y la correspondencia entre los 7 alias personales del histórico y sus titulares. Ambas son datos que solo el colegio posee.
+- **A-006a**: ~~El responsable del proyecto entregará antes de la migración dos listas: los 10 correos institucionales autorizados y la correspondencia entre los alias personales del histórico y sus titulares.~~ **Resuelto el 2026-09-02.** Se entregaron los 10 correos institucionales. De los 8 alias del archivo, 5 tienen titular identificado; 2 no lo tienen y el equipo decidió importar sus mediciones sin autor (FR-030b); el octavo resultó ser un correo externo de la hoja en bruto, que la importación no lee.
 - **A-007**: SIATA se usa como referente de contexto y contenido pedagógico; esta especificación no asume ninguna integración automática con sus servicios. La escala de clasificación sí se alinea con la suya: el ICA de la Resolución 2254 de 2017 (FR-035).
 - **A-007a**: El AQI que traen los medidores portátiles se conserva tal cual como dato del instrumento, pero no se asume que coincida con el ICA colombiano: los equipos suelen calcularlo con la escala estadounidense de la EPA. Por eso ambos se muestran por separado (FR-035d).
 - **A-008**: La maqueta de la estación fija y los instrumentos de plástico son objetos físicos que se representan en la aplicación como contenido explicativo, no como fuentes de datos automatizadas.
@@ -440,16 +444,16 @@ Resueltas por el equipo el 2026-08-28.
 | # | Decisión | Efecto en la especificación |
 |---|----------|------------------------------|
 | 1 | El proyecto se llama **NIDO PJB** — *Nodo de Investigación y Datos Observados del Instituto Salesiano Pedro Justo Berrío*. Se conserva el logo actual y solo cambia el texto de la marca. | FR-001, FR-002, A-001 |
-| 2 | Acceso restringido por correo institucional. El responsable del proyecto da de alta manualmente a los 10 integrantes; no hay autorregistro. Los 7 alias personales del histórico se vinculan al correo institucional de su titular. La aplicación se publica en **institutopedrojustoberrio.com**. | FR-011, FR-013, FR-013a, FR-030, FR-030a, A-006, A-006a |
+| 2 | Acceso restringido por correo institucional. El responsable del proyecto da de alta manualmente a los 10 integrantes; no hay autorregistro. Los alias personales del histórico con titular identificado se vinculan a su correo institucional; los que no lo tienen se descartan y sus mediciones quedan sin autor. La aplicación se publica en **institutopedrojustoberrio.com**. | FR-011, FR-013, FR-013a, FR-030, FR-030a, FR-030b, A-006, A-006a |
 | 3 | La aplicación **reemplaza** el formulario en línea actual: todas las mediciones nuevas se registran en ella. Además conserva la importación de hojas de cálculo como vía de respaldo permanente para cargas masivas. | FR-028 a FR-031c, SC-015 |
 
 ### Pendientes de entrega del equipo (datos, no decisiones)
 
 Ninguno bloquea la planeación, pero los tres se necesitan antes de migrar:
 
-1. La lista de los **10 correos institucionales** autorizados.
-2. La **correspondencia** entre los 7 alias del histórico (`alias-1`, `alias-2`, `alias-3`, `alias-4`, `alias-5`, `alias-6`, `alias-7`) y sus titulares.
-3. El nombre real del lugar anotado como **`Op`** en 12 registros históricos.
+1. ~~La lista de los **10 correos institucionales** autorizados.~~ Entregada el 2026-09-02.
+2. ~~La **correspondencia** entre los alias del histórico y sus titulares.~~ Resuelta el 2026-09-02: 5 vinculados, 2 sin titular (FR-030b), 1 que no era un alias de estudiante.
+3. El nombre real del lugar anotado como **`Op`** en 12 registros históricos. *(Los 12 son de un alias sin titular, así que se importarán sin autor pero siguen necesitando el nombre del lugar.)*
 4. El **inventario del material de dron**: qué tomas existen, en qué formato (panorámica 360°, foto, video), de qué puntos del colegio y con qué resolución. De ahí sale la elección de formato de las vistas inmersivas (A-010c) y la toma que servirá de imagen base del mapa.
 5. La confirmación institucional de si el mapa público puede señalar talleres del colegio como puntos de alta contaminación (A-010d).
 

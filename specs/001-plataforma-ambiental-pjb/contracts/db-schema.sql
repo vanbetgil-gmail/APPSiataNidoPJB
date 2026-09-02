@@ -156,10 +156,19 @@ create table jornada (
   fecha         date        not null,
   lugar_id      uuid        not null references lugar_medicion(id),
   medidor_id    uuid        not null references medidor(id),
-  integrante_id uuid        not null references integrante(id),
+
+  -- Nulo solo en registros importados sin autor identificable (FR-030b).
+  -- Ver la restricción de más abajo: la aplicación no puede dejarlo vacío.
+  integrante_id uuid        references integrante(id),
+
   cerrada       boolean     not null default false,
   origen        origen_jornada not null default 'app',
-  creada_en     timestamptz not null default now()
+  creada_en     timestamptz not null default now(),
+
+  -- Abrir el campo a nulos sin acotarlo permitiría crear mediciones
+  -- anónimas desde la aplicación, rompiendo la trazabilidad de FR-030a.
+  constraint jornada_sin_autor_solo_importada
+    check (integrante_id is not null or origen <> 'app')
 );
 
 create table medicion (

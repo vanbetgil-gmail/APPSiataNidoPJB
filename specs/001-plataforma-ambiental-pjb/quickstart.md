@@ -120,7 +120,7 @@ Es el escenario más importante: reproduce el uso real dentro de un taller sin s
 ### V-4 · Los tableros no mienten (Historia 4)
 
 1. Con el histórico migrado, abrir tableros.
-2. Comprobar que el total de mediciones es **exactamente 135** más lo registrado en pruebas (SC-007).
+2. Comprobar que el total de mediciones es **exactamente 98** más lo registrado en pruebas, repartidas en **15 jornadas**, y que el informe de la migración enumera las **37 rechazadas** por venir sin lugar ni medidor (SC-007). 98 + 37 = 135, el conteo del archivo de origen.
 3. Comparar PM2.5 entre Taller de Mecánica Industrial y Ebanistería.
 4. Ajustar el rango de fechas: **todas** las gráficas deben cambiar a la vez.
 5. Seleccionar un rango sin datos → mensaje explícito de ausencia, no una gráfica vacía (FR-037).

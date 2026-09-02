@@ -37,7 +37,7 @@ En la iteración 1 el único ítem no superado era "No [NEEDS CLARIFICATION] mar
 
 - **FR-001** → el proyecto se llama **NIDO PJB** (*Nodo de Investigación y Datos Observados del Instituto Salesiano Pedro Justo Berrío*).
 - **FR-011** → acceso por correo institucional con dominio configurable; alta manual de los 10 integrantes por el responsable, sin autorregistro (FR-013a).
-- **FR-030** → los 7 alias personales del histórico se vinculan al correo institucional de su titular, y la vinculación queda auditable (FR-030a).
+- **FR-030** → los alias personales del histórico se vinculan al correo institucional de su titular, y la vinculación queda auditable (FR-030a).
 
 La decisión sobre el formulario actual (reemplazo con importación de respaldo permanente) añadió FR-031a, FR-031b, FR-031c y SC-015.
 
@@ -46,7 +46,7 @@ La decisión sobre el formulario actual (reemplazo con importación de respaldo 
 No son marcadores de ambigüedad ni bloquean la planeación, pero se necesitan antes de ejecutar la migración:
 
 1. Lista de los 10 correos institucionales autorizados.
-2. Correspondencia entre los 7 alias del histórico y sus titulares.
+2. ~~Correspondencia entre los alias del histórico y sus titulares.~~ **Resuelto el 2026-09-02.** El archivo trae 8 alias, no 7. Cinco quedaron vinculados; dos no tienen titular identificado y el equipo decidió descartarlos, con sus 19 mediciones importadas sin autor; el octavo (`luis.tapia@udea.edu.co`) no es un alias de estudiante sino un correo externo de la hoja en bruto, que la importación no lee. Se añadieron FR-030b y la migración `0006`.
 3. Nombre real del lugar anotado como `Op` en 12 registros históricos.
 
 ### Riesgo abierto

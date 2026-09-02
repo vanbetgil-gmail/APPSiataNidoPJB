@@ -189,9 +189,9 @@ Queda anotado en `app/(publico)/creditos/page.tsx` que la página de créditos n
 
 ## Phase 6: User Story 4 - Consultar los tableros de resultados (Priority: P3)
 
-**Goal**: el equipo ve la evolución de cada variable, compara lugares y exporta los datos. Incluye traer los 135 registros históricos, sin los cuales los tableros están vacíos.
+**Goal**: el equipo ve la evolución de cada variable, compara lugares y exporta los datos. Incluye traer los registros históricos importables (98 de los 135 del archivo), sin los cuales los tableros están vacíos.
 
-**Independent Test**: con el histórico migrado, comprobar que el total es exactamente 135, comparar PM2.5 entre dos talleres, cambiar el rango de fechas y exportar, verificando que el archivo coincide con la pantalla (escenario V-4 de `quickstart.md`).
+**Independent Test**: con el histórico migrado, comprobar que el total es exactamente 98 en 15 jornadas y que las 37 rechazadas aparecen enumeradas con su motivo, comparar PM2.5 entre dos talleres, cambiar el rango de fechas y exportar, verificando que el archivo coincide con la pantalla (escenario V-4 de `quickstart.md`).
 
 ### Migración e importación del histórico
 

@@ -84,6 +84,8 @@ Vincula los alias de correo personal del archivo original con el integrante corr
 
 Existe como tabla propia, y no como columna en `integrante`, porque una misma persona podría haber usado más de un alias, y porque conservarla explícita permite auditar la migración después de hecha, que es justamente lo que exige FR-030a.
 
+Solo entran aquí los alias **con titular identificado**. Los que no lo tienen no se registran: sus mediciones se importan con `integrante_id` nulo y el alias en bruto se descarta (FR-030b). La tabla no es un registro de todo lo que traía el archivo, sino de las correspondencias que el equipo pudo confirmar.
+
 ### `lugar_medicion`
 
 Catálogo de espacios (FR-021).
@@ -123,7 +125,7 @@ Sesión de campo que agrupa mediciones (FR-019).
 | `fecha` | date NOT NULL | |
 | `lugar_id` | uuid FK NOT NULL | |
 | `medidor_id` | uuid FK NOT NULL | |
-| `integrante_id` | uuid FK NOT NULL | Quien midió |
+| `integrante_id` | uuid FK, nullable | Quien midió. Nulo solo si `origen <> 'app'` y no se pudo identificar (FR-030b) |
 | `cerrada` | boolean NOT NULL DEFAULT false | FR-020 |
 | `origen` | enum `app` \| `importacion` \| `migracion` | Trazabilidad |
 | `creada_en` | timestamptz NOT NULL | |
@@ -321,7 +323,7 @@ Las políticas RLS completas están en [contracts/db-schema.sql](./contracts/db-
 | `medidor` | 4 equipos, con las series `31`–`34` y `9031`–`9034` ya unificadas |
 | `categoria_biodiversidad` | Árbol, arbusto, ave, insecto, planta ornamental |
 | `integrante` | 10 filas — pendiente de la lista de correos institucionales |
-| `alias_historico` | 7 filas — pendiente de la correspondencia |
+| `alias_historico` | 5 filas — los alias con titular identificado. Los 2 restantes no se registran (FR-030b) |
 | `configuracion` | 1 fila |
 | `imagen_base_mapa` | 1 fila — pendiente del inventario de dron |
 

@@ -218,19 +218,33 @@ Recargar `http://localhost:3000`: ya debe verse el colegio desde el aire.
 
 **Depende del equipo, no de la programación.** Conviene empezar ya.
 
-Son cinco cosas. Ninguna la puedo resolver yo:
+Son seis cosas, y dos ya están resueltas. Ninguna la puedo resolver yo:
 
-| # | Qué falta | Para qué |
-|---|---|---|
-| 1 | Los **10 correos institucionales** | Que los integrantes puedan entrar |
-| 2 | Qué alias corresponde a cada persona | Atribuir las 135 mediciones históricas |
-| 3 | El nombre real del lugar **`Op`** | 12 de los 135 registros lo tienen |
-| 4 | ¿Los medidores son 4 u 8? | Ver abajo |
-| 5 | Permiso para señalar talleres | Ver abajo |
+| # | Qué falta | Para qué | Estado |
+|---|---|---|---|
+| 1 | Los **10 correos institucionales** | Que los integrantes puedan entrar | ✅ Entregados el 2026-09-02 |
+| 2 | Qué alias corresponde a cada persona | Atribuir las mediciones históricas | ✅ Resuelto el 2026-09-02 |
+| 3 | El nombre real del lugar **`Op`** | 12 registros lo tienen | ⏳ Pendiente |
+| 4 | ¿Los medidores son 4 u 8? | Ver abajo | ⏳ Pendiente |
+| 5 | Permiso para señalar talleres | Ver abajo | ⏳ Pendiente |
+| 6 | Dónde midió David el 22 de octubre | Recuperar 6 mediciones | ⏳ Ver abajo |
 
-**Sobre el punto 2**, los alias del archivo son:
-`alias-1`, `alias-2`, `alias-3`, `alias-4`,
-`alias-5`, `alias-6`, `alias-7`.
+**Sobre el punto 2**: de los 8 alias del archivo, 5 quedaron vinculados a su
+titular. Dos no se pudieron identificar y sus 19 mediciones se importarán sin
+autor, por decisión del equipo. El octavo era un correo externo de la
+Universidad de Antioquia que aparece en la hoja en bruto y que la importación
+no lee; no corresponde a ningún estudiante.
+
+**Sobre el punto 6** — este apareció al revisar el archivo. Seis mediciones del
+**22 de octubre a las 12:50**, firmadas por **David García Toro**, vienen sin
+lugar y sin número de serie, así que no se pueden importar: una medición de
+aire sin lugar no se puede comparar ni ubicar en el mapa.
+
+A diferencia de las otras 31 filas incompletas, estas sí son recuperables,
+porque su autor sigue en el proyecto. Si David recuerda dónde midió ese día y
+con qué equipo, se completan esas dos columnas en el archivo y se reimporta.
+Ese mismo día hay otra jornada en el **Taller de Mecánica Automotriz con el
+equipo 32**, por si le sirve de referencia.
 
 **Sobre el punto 4** — importante: el archivo trae las series `31`–`34` y
 también `9031`–`9034`. Asumí que son **cuatro** medidores y que el `90` es un

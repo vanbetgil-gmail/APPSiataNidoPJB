@@ -44,6 +44,19 @@ La importación lee **exclusivamente `LongData`**. Si el archivo no contiene esa
 
 **Una columna ausente no invalida el archivo** si es opcional: se importa como `NULL` (no medido).
 
+### Relleno del archivo: hay que contar filas reales, no filas de hoja
+
+Dos trampas verificadas sobre `MEDIDORES.xlsx`, que un lector ingenuo no salva:
+
+| Lo que reporta la hoja | Lo que hay de verdad |
+|---|---|
+| **999 filas** | **135 con datos**; las 864 restantes están completamente vacías |
+| **31 columnas** | **16 con encabezado**; las 15 finales están vacías |
+
+Recorrer la hoja tal cual crearía **864 jornadas fantasma**. La regla es descartar toda fila cuyas celdas sean todas nulas **antes** de cualquier otra validación, y no fiarse de las dimensiones que declara el archivo.
+
+Las filas cortas son además irregulares: algunas terminan antes de la columna 16, así que el acceso por índice debe tolerar que el índice no exista en lugar de fallar.
+
 ---
 
 ## Normalizaciones obligatorias
@@ -86,17 +99,59 @@ Regla: si la serie tiene 4 dígitos y comienza por `90`, se normaliza a sus dos 
 
 Esta regla debe **confirmarse con el equipo antes de ejecutar la migración**. Si en realidad fueran ocho equipos distintos, unificarlos mezclaría lecturas de aparatos diferentes.
 
-### 4. Autoría (FR-030)
+### 4. Autoría (FR-030, FR-030b)
 
-La columna trae alias de correo personal (`alias-1`, `alias-2`, …). Se resuelven contra `alias_historico`.
+La columna trae alias de correo personal. Se resuelven contra `alias_historico`.
 
-Un alias sin correspondencia registrada **rechaza la fila**: importar una medición sin autor identificable incumpliría SC-016.
+Reparto real sobre los 98 registros importables:
+
+| Alias | Mediciones | Resolución |
+|---|---:|---|
+| `alias-1` | 41 | integrante |
+| `alias-2` | 18 | integrante |
+| `alias-4` | 7 | integrante |
+| `alias-3` | 7 | integrante (otras 6 suyas se rechazan, ver 4b) |
+| `alias-5` | 6 | integrante |
+| *(dos alias sin titular)* | 19 | **sin autor** |
+
+Un alias sin titular se importa **con `integrante_id` nulo**. El alias en bruto **no se guarda**: es un correo personal de Gmail y, sin titular a quien corresponda, es un dato personal sin finalidad. Se descarta en la importación y no llega a la base de datos.
+
+**Por qué no se rechaza la fila.** Esas 19 mediciones están completas: fecha, hora, lugar, medidor y valores. Lo único que falta es quién sostuvo el aparato, que es metadato. La medición del aire es el dato científico, y perder el segundo no justifica perder el primero.
+
+**Decisión del equipo, 2026-09-02.** Se consideró atribuirlas a un integrante concreto y se descartó: los dos alias deletrean nombres de otras personas, y el 17 de septiembre uno de ellos midió en `Op` con los equipos 9031 y 9034 mientras el integrante candidato medía en el Taller de Mecánica Industrial con el 33. Mismo día, sitios y aparatos distintos: son dos personas. Atribuirlas habría registrado que un estudiante hizo el trabajo de campo de otro.
+
+Si más adelante se identifica a sus titulares, el responsable puede atribuirlas desde la aplicación sin rehacer la migración.
+
+Estas filas se cuentan aparte en la previsualización (FR-031b) como `sin_autor`, para que el responsable vea el alcance antes de confirmar.
+
+### 4b. Filas sin lugar ni medidor (FR-031)
+
+**37 de los 135** registros traen los valores del aire completos pero sin lugar y sin número de serie. Las dos columnas faltan siempre juntas: no hay ni un solo caso con una y sin la otra.
+
+Se reparten en dos grupos de naturaleza distinta:
+
+| Grupo | Filas | Fechas | Recuperable |
+|---|---:|---|---|
+| Sin lugar, sin equipo **y sin autor** | 31 | 15, 20, 22 y 24 de agosto de 2025 | No: nadie a quien preguntar |
+| Sin lugar ni equipo, pero **firmadas por `alias-3`** | 6 | 22 de octubre de 2025, 12:50 | **Sí**: su autor sigue en el equipo |
+
+**Se rechazan los dos grupos.** `lugar` y `medidor` son obligatorios, y no por formalismo: una medición de aire sin lugar no se puede comparar con ninguna otra, ubicar en el mapa ni promediar por espacio. Sería un número suelto ocupando sitio en los tableros.
+
+No se rechazan en silencio (FR-031): aparecen en la previsualización con el motivo, y el archivo original se conserva como respaldo.
+
+**Las 6 del segundo grupo merecen un intento antes de darlas por perdidas.** Su autor está identificado y sigue en el proyecto, así que puede recordar dónde midió el 22 de octubre y con qué equipo. Basta con completar esas dos columnas en el archivo y reimportar; la deduplicación (más abajo) impide que se dupliquen las ya cargadas. Ese mismo día hay otra jornada registrada en el Taller de Mecánica Automotriz con el equipo 32, que puede servir de referencia para situarlas.
+
+Sobre las 31 primeras, el equipo confirmó el 2026-09-02 que no dispone del lugar ni del equipo.
 
 ### 5. Agrupación en jornadas (FR-019)
 
-`LongData` es plano; el modelo agrupa en jornadas. Regla: todas las filas que comparten `(fecha de MarcaTemporalEnvio, lugar, medidor, autor)` pertenecen a la misma jornada.
+`LongData` es plano; el modelo agrupa en jornadas. Regla: todas las filas que comparten `(MarcaTemporalEnvio, lugar, medidor, autor)` pertenecen a la misma jornada.
 
-Sobre los datos reales, esto produce **22 jornadas** a partir de 135 mediciones, coincidiendo con las 22 marcas temporales distintas del archivo. Es la comprobación de que la regla es correcta.
+**La marca temporal completa, con hora, no solo el día.** La diferencia no es teórica: el archivo tiene 22 marcas distintas repartidas en solo 13 días, porque hubo días con dos envíos. Agrupar por día fundiría esos envíos en una sola jornada y perdería 2 de las 22.
+
+Sobre los datos reales, la regla reproduce exactamente las 22 marcas temporales del archivo. Es la comprobación de que es correcta.
+
+Tras rechazar las 37 filas sin lugar ni medidor (§4b), que forman 7 de esas marcas, quedan **15 jornadas con 98 mediciones**.
 
 ---
 

@@ -80,8 +80,12 @@ on conflict (nombre) do nothing;
 --
 -- ⚠️ PENDIENTE DEL COLEGIO — no se siembran cuentas reales.
 --
--- Hacen falta los 10 correos institucionales y la correspondencia entre los
--- 7 alias personales del histórico y sus titulares (spec.md A-006a).
+-- Los 10 correos institucionales y la correspondencia de alias se
+-- entregaron el 2026-09-02, pero siguen sin sembrarse aquí: son datos
+-- personales de menores y este archivo se versiona en un repositorio
+-- público. El alta se hace con `pnpm cargar-equipo`, que los lee de
+-- datos-colegio/ (ignorado por git). Ver spec.md A-006a.
+--
 -- Sembrar correos inventados crearía cuentas con acceso real: no se hace.
 --
 -- El alta la realiza el responsable desde /admin/integrantes (FR-013a).

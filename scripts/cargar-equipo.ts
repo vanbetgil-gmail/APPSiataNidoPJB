@@ -123,12 +123,40 @@ function buscarCsv(): string {
   return `${carpeta}/${candidatos[0]}`
 }
 
-function leerEquipo(): { filas: FilaEquipo[]; ruta: string } {
+/**
+ * Decodifica el CSV sin importar cómo lo guardó Excel.
+ *
+ * Excel en español, sobre Windows, guarda los «.csv» en ANSI (windows-1252) a
+ * menos que se elija a mano «CSV UTF-8». Y leer ese archivo como UTF-8 no da
+ * error: convierte en silencio cada tilde en un carácter de reemplazo, así
+ * que «García» se guardaría en la base de datos como «Garc□a», donde ya no
+ * hay manera de recuperar el nombre.
+ *
+ * Un nombre propio mal escrito no es un detalle cosmético cuando la pantalla
+ * la va a ver su dueño. Así que la codificación se decide por el contenido y
+ * no por confianza: se intenta UTF-8 en modo estricto —que sí falla ante
+ * bytes imposibles— y solo si el archivo no lo es se relee como windows-1252.
+ */
+function decodificar(bytes: Buffer): { texto: string; codificacion: string } {
+  try {
+    return {
+      texto: new TextDecoder('utf-8', { fatal: true }).decode(bytes),
+      codificacion: 'UTF-8',
+    }
+  } catch {
+    return {
+      texto: new TextDecoder('windows-1252').decode(bytes),
+      codificacion: 'ANSI (windows-1252)',
+    }
+  }
+}
+
+function leerEquipo(): { filas: FilaEquipo[]; ruta: string; codificacion: string } {
   const RUTA_CSV = buscarCsv()
-  // `utf-8-sig` en la práctica: Excel guarda los CSV con marca de orden de
-  // bytes al principio, y sin quitarla la primera columna se llamaría
-  // "﻿correo" y no coincidiría con nada.
-  const texto = readFileSync(RUTA_CSV, 'utf8').replace(/^﻿/, '')
+  // Excel guarda los CSV con marca de orden de bytes al principio, y sin
+  // quitarla la primera columna se llamaría "﻿correo" y no coincidiría con nada.
+  const { texto: bruto, codificacion } = decodificar(readFileSync(RUTA_CSV))
+  const texto = bruto.replace(/^﻿/, '')
 
   const lineas = texto.split('\n').map((l) => l.trim()).filter(Boolean)
   const filas: FilaEquipo[] = []
@@ -160,15 +188,37 @@ function leerEquipo(): { filas: FilaEquipo[]; ruta: string } {
     })
   }
 
-  return { filas, ruta: RUTA_CSV }
+  return { filas, ruta: RUTA_CSV, codificacion }
 }
 
 // ---------------------------------------------------------------------------
 async function main() {
   console.log('\nNIDO PJB — alta del equipo\n')
 
-  const { filas: equipo, ruta } = leerEquipo()
-  console.log(`Leídas ${equipo.length} personas de ${ruta}\n`)
+  const { filas: equipo, ruta, codificacion } = leerEquipo()
+  console.log(`Leídas ${equipo.length} personas de ${ruta} (${codificacion})\n`)
+
+  // Última red antes de escribir: si a pesar de todo quedó algún carácter de
+  // reemplazo, es que el archivo tiene una codificación que no reconocemos.
+  // Mejor parar que grabar nombres roscados que nadie va a poder corregir
+  // después sin acceso a la base de datos.
+  const rotos = equipo.filter((p) => p.nombre.includes('�'))
+  if (rotos.length > 0) {
+    console.error('✖ Estos nombres llegaron con caracteres ilegibles:\n')
+    rotos.forEach((p) => console.error(`    ${p.nombre}`))
+    console.error('\n  Vuelva a guardar el CSV desde Excel eligiendo el tipo')
+    console.error('  «CSV UTF-8 (delimitado por comas)» y ejecute de nuevo.\n')
+    process.exit(1)
+  }
+
+  // Los nombres se muestran para que pueda revisar las tildes antes de crear
+  // nada: es el único momento en que corregirlas cuesta solo reescribir el CSV.
+  console.log('Revise que los nombres estén bien escritos:')
+  equipo.forEach((p) => {
+    const marca = p.rol === 'responsable' ? '★' : '·'
+    console.log(`  ${marca} ${p.nombre}${p.alias ? `  (alias: ${p.alias})` : ''}`)
+  })
+  console.log()
 
   // Comprobación previa: el dominio y el responsable.
   const { data: config } = await supabase

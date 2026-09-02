@@ -70,7 +70,13 @@ export type Jornada = {
   fecha: string
   lugar_id: string
   medidor_id: string
-  integrante_id: string
+  /**
+   * Nulo solo en jornadas importadas cuyo autor no se pudo identificar
+   * (FR-030b). La restricción `jornada_sin_autor_solo_importada` impide
+   * que una jornada creada en la aplicación llegue sin autor, así que en
+   * todo lo que escriba la aplicación este campo va siempre relleno.
+   */
+  integrante_id: string | null
   cerrada: boolean
   origen: OrigenJornada
   creada_en: string
