@@ -1,0 +1,88 @@
+# Dependencias
+node_modules/
+.pnp
+.pnp.js
+
+# Compilación
+.next/
+out/
+dist/
+build/
+# Caché incremental de TypeScript: se regenera sola y cambia en cada
+# compilación. Versionarla llena el historial de ruido.
+*.tsbuildinfo
+
+# Entorno — NUNCA versionar claves
+.env
+.env.local
+.env*.local
+
+# Supabase local
+supabase/.branches/
+supabase/.temp/
+
+# Pruebas
+coverage/
+test-results/
+playwright-report/
+.playwright/
+
+# Registro y temporales
+*.log
+*.tmp
+*.swp
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Editores
+.vscode/
+.idea/
+
+# Agente de código: spec-kit advierte que puede guardar credenciales aquí
+.claude/
+
+# NOTA sobre el material pesado (teselas del mapa y vistas inmersivas):
+# NO se excluyen. Según research.md R-008 se sirven como archivos estáticos
+# desde la CDN del alojamiento, y para eso deben estar versionados: excluirlos
+# desplegaría la aplicación con el mapa en blanco.
+#
+# Contrapartida a vigilar: la pirámide de teselas puede rondar los 100–200 MB.
+# Si el repositorio se vuelve inmanejable, la salida es Git LFS o un alojamiento
+# de archivos aparte — nunca excluirlos sin más. Ver docs/actualizar-mapa.md.
+#
+# Sí se excluye la ortofoto original, que es el insumo y pesa mucho más:
+*.tif
+*.tiff
+ortofotos-originales/
+
+# Datos personales del equipo — NUNCA se versionan.
+#
+# Contiene correos institucionales de menores de edad. El repositorio es
+# público: subirlos incumpliría el Art. 7 de la Ley 1581 de 2012 y quedaría
+# en el historial de Git para siempre.
+#
+# Solo se versiona la plantilla de ejemplo, sin datos reales.
+datos-colegio/*
+!datos-colegio/*.ejemplo.csv
+!datos-colegio/LEEME.md
+
+# Material original de dron — NUNCA se versiona.
+#
+# Son 2,8 GB en 6 archivos, uno de ellos de 1,9 GB. GitHub rechaza cualquier
+# archivo de más de 100 MB, así que el push falla entero.
+#
+# Lo que SÍ se versiona son los clips recortados de public/inmersivas/
+# (27 MB en total), que se regeneran desde estos originales con
+# scripts/extraer-clips.py.
+#
+# Guarde los originales fuera del repositorio: son el material de partida,
+# no el producto.
+TomasDRON/
+*.MP4
+*.mov
+*.MOV
+
+# Excepción: los clips ya recortados y optimizados para web sí se publican.
+!public/inmersivas/*.mp4

@@ -1,0 +1,60 @@
+# NIDO PJB — configuración de Supabase local
+project_id = "nido-pjb"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+
+[auth]
+enabled = true
+
+# ⚠️ ESTO SOLO APLICA A SUPABASE LOCAL.
+#
+# En el proyecto ALOJADO —que es el que se va a usar— estas mismas dos cosas
+# se configuran en el panel: Authentication → URL Configuration.
+#
+# Si no se hacen allí, el enlace de acceso APUNTA A LOCALHOST y nadie puede
+# entrar desde el dominio real. El correo llega bien, el enlace parece
+# correcto, y al abrirlo no lleva a ninguna parte. Es el fallo más silencioso
+# de todo el despliegue.
+#
+# Valores para el panel de Supabase en producción:
+#   Site URL            : https://institutopedrojustoberrio.com
+#   Redirect URLs       : https://institutopedrojustoberrio.com/**
+#                         https://*.vercel.app/**        (despliegues de prueba)
+#                         http://localhost:3000/**       (desarrollo)
+site_url = "http://localhost:3000"
+additional_redirect_urls = [
+  "http://localhost:3000/**",
+  "https://institutopedrojustoberrio.com/**",
+]
+jwt_expiry = 3600
+# FR-016: la sesión se mantiene entre usos de la aplicación
+enable_refresh_token_rotation = true
+# FR-013a: NO hay autorregistro. El alta la hace el responsable
+# registrando el correo en la tabla `integrante`.
+enable_signup = false
+
+[auth.email]
+enable_signup = false
+# R-005: enlace mágico. Sin contraseñas que gestionar, lo cual importa
+# especialmente tratándose de menores de edad.
+enable_confirmations = true
+double_confirm_changes = true
+
+[storage]
+enabled = true
+# Fotos de fichas subidas por estudiantes (R-008).
+# Las teselas y el material inmersivo NO van aquí: son estáticos en CDN.
+file_size_limit = "10MiB"

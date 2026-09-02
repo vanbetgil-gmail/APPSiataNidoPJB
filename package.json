@@ -1,0 +1,56 @@
+{
+  "name": "nido-pjb",
+  "version": "0.1.0",
+  "private": true,
+  "description": "NIDO PJB — Nodo de Investigación y Datos Observados del Instituto Pedro Justo Berrío",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:a11y": "vitest run tests/a11y",
+    "test:rls": "vitest run tests/integration",
+    "db:reset": "supabase db reset",
+    "db:tipos": "supabase gen types typescript --local > lib/supabase/tipos.ts",
+    "migrar:historico": "tsx scripts/migrar-historico.ts",
+    "verificar": "tsx scripts/verificar-conexion.ts",
+    "revisar": "tsx scripts/revisar-antes-de-subir.ts",
+    "cargar-equipo": "tsx scripts/cargar-equipo.ts"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.12.5",
+    "@supabase/supabase-js": "^2.47.10",
+    "dexie": "^4.0.10",
+    "leaflet": "^1.9.4",
+    "next": "^15.1.6",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "recharts": "^2.15.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.1",
+    "@playwright/test": "^1.49.1",
+    "@tailwindcss/postcss": "^4.0.0",
+    "@types/leaflet": "^1.9.16",
+    "@types/node": "^22.10.5",
+    "@types/react": "^19.0.7",
+    "@types/react-dom": "^19.0.3",
+    "@vitejs/plugin-react": "^4.3.4",
+    "eslint": "^9.18.0",
+    "eslint-config-next": "^16.3.3",
+    "prettier": "^3.4.2",
+    "tailwindcss": "^4.0.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

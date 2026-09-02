@@ -1,0 +1,16 @@
+# Dependencias autorizadas a ejecutar sus scripts de instalación.
+#
+# pnpm bloquea por omisión los scripts de post-instalación, porque son una vía
+# conocida de ataque en la cadena de suministro. Hay que autorizar uno por uno.
+#
+# Estas dos son legítimas y necesarias:
+#
+#   esbuild        Descarga y enlaza su binario nativo según el sistema
+#                  operativo. Lo usa Vitest para ejecutar las pruebas.
+#   unrs-resolver  Binario nativo de resolución de módulos. Lo usa ESLint.
+#
+# Sin autorizarlas, `pnpm verificar`, `pnpm test` y `pnpm lint` fallan con
+# ERR_PNPM_IGNORED_BUILDS.
+allowBuilds:
+  esbuild: true
+  unrs-resolver: true
