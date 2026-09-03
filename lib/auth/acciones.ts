@@ -2,10 +2,11 @@
 
 import { createServerClient } from '@supabase/ssr'
 import type { CookieOptions } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { LARGO_MINIMO_CONTRASENA } from '@/lib/auth/reglas'
 import { normalizarCorreo, verificarAcceso } from '@/lib/auth/verificarAcceso'
+import { urlSitio } from '@/lib/sitio'
 import type { Database } from '@/lib/supabase/tipos'
 
 /**
@@ -209,8 +210,23 @@ export async function solicitarRecuperacion(
    * /cuenta. Allí está el formulario de cambio de contraseña, así que no
    * hace falta una pantalla nueva: quien llega ya tiene sesión y lo único
    * que necesita es escribir la nueva.
+   *
+   * ── De dónde sale la dirección ─────────────────────────────────────────
+   *
+   * De la petición en curso, no de una variable de entorno. Si esa variable
+   * queda mal configurada —y en desarrollo vale `http://localhost:3000`— el
+   * correo llega perfectamente y su enlace no lleva a ninguna parte. Es un
+   * fallo silencioso: quien lo sufre no ve ningún error, solo una página que
+   * no es la suya.
+   *
+   * La cabecera `host` la pone el propio servidor que atiende la petición,
+   * así que en producción es la dirección de producción y en desarrollo la
+   * de desarrollo, sin nada que recordar configurar.
    */
-  const origen = process.env.NEXT_PUBLIC_URL_SITIO ?? 'https://app-siata-nido-pjb.vercel.app'
+  const cabeceras = await headers()
+  const anfitrion = cabeceras.get('host')
+  const protocolo = anfitrion?.startsWith('localhost') ? 'http' : 'https'
+  const origen = anfitrion ? `${protocolo}://${anfitrion}` : urlSitio()
 
   const { error } = await supabase.auth.resetPasswordForEmail(correo, {
     redirectTo: `${origen}/auth/callback?siguiente=${encodeURIComponent('/cuenta?recuperacion=1')}`,
