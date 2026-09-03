@@ -85,4 +85,11 @@ TomasDRON/
 *.MOV
 
 # Excepción: los clips ya recortados y optimizados para web sí se publican.
+#
+# Ojo con esta lista. `*.MP4` atrapa también los .mp4 en minúscula, así que
+# CUALQUIER video nuevo que deba desplegarse necesita su línea aquí. Un
+# archivo que existe en disco, se referencia desde el código y no está en el
+# repositorio produce un 404 en producción y nada en local, que es la forma
+# más incómoda de descubrir un fallo.
 !public/inmersivas/*.mp4
+!public/fondo/*.mp4

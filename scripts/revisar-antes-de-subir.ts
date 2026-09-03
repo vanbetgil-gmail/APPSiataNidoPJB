@@ -32,7 +32,7 @@
  */
 
 import { execSync } from 'node:child_process'
-import { readFileSync, statSync } from 'node:fs'
+import { existsSync, readFileSync, statSync } from 'node:fs'
 
 interface Patron {
   nombre: string
@@ -153,6 +153,89 @@ function archivosQueSeSubirian(): string[] {
 const EXTENSIONES_BINARIAS = /\.(png|jpe?g|gif|webp|mp4|mov|pdf|zip|woff2?|ico|tif|tiff)$/i
 const TAMANO_MAXIMO = 2 * 1024 * 1024
 
+/**
+ * Comprueba que todo archivo de `public/` que el código referencia esté
+ * realmente en el repositorio.
+ *
+ * ── Por qué existe esta comprobación ─────────────────────────────────────
+ *
+ * Porque ya pasó. `.gitignore` lleva `*.MP4` para mantener fuera los 2,8 GB
+ * de material de dron, y esa regla atrapó también un video de 105 KB que sí
+ * debía publicarse. En local funcionaba —el archivo estaba en disco— y en
+ * producción daba 404 sin que nada avisara.
+ *
+ * Es el peor tipo de fallo: invisible donde se desarrolla, visible solo para
+ * quien usa la aplicación. Un escáner que dice «todo bien» mientras eso
+ * ocurre no está haciendo su trabajo.
+ */
+function revisarAssetsReferenciados(): number {
+  const versionados = new Set(
+    execSync('git ls-files public', { encoding: 'utf8' })
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean)
+  )
+
+  // Rutas absolutas a public/ escritas entre comillas en el código.
+  const REFERENCIA = /["'`](\/(?:fondo|inmersivas|iconos|mapa|imagenes)\/[^"'`\s)]+)["'`]/g
+
+  const fuentes = archivosQueSeSubirian().filter((f) => /\.(tsx?|jsx?|css)$/.test(f))
+  const faltantes = new Map<string, Set<string>>()
+
+  for (const archivo of fuentes) {
+    let contenido: string
+    try {
+      contenido = readFileSync(archivo, 'utf8')
+    } catch {
+      continue
+    }
+
+    for (const m of contenido.matchAll(REFERENCIA)) {
+      const ruta = m[1]
+      // Rutas construidas en tiempo de ejecución: no se pueden comprobar.
+      if (ruta.includes('${') || ruta.includes('?')) continue
+
+      const enDisco = `public${ruta}`
+      // Si no existe en disco es otro problema, no el que busca esta función.
+      if (!existsSync(enDisco)) continue
+      if (versionados.has(enDisco)) continue
+
+      if (!faltantes.has(enDisco)) faltantes.set(enDisco, new Set())
+      faltantes.get(enDisco)!.add(archivo)
+    }
+  }
+
+  if (faltantes.size === 0) return 0
+
+  console.log('✖ ARCHIVOS REFERENCIADOS QUE NO SE SUBIRÍAN\n')
+  for (const [ruta, desde] of faltantes) {
+    console.log(`    ${ruta}`)
+    console.log('      existe en disco pero git NO lo versiona')
+    console.log(`      lo usa: ${[...desde].join(', ')}`)
+    /*
+     * `git check-ignore -v` devuelve la ÚLTIMA regla que coincide, y esa
+     * puede ser una excepción (`!public/fondo/*.mp4`). Mostrarla como «lo
+     * excluye» mandaría a quien lea el aviso a borrar justamente la línea
+     * que lo permite. Solo se nombra la regla si de verdad lo excluye.
+     */
+    try {
+      const regla = execSync(`git check-ignore -v "${ruta}"`, { encoding: 'utf8' }).trim()
+      const patron = regla.split('\t')[0] ?? ''
+      const esExcepcion = /:!/.test(patron)
+      console.log(
+        esExcepcion || !patron
+          ? '      no lo excluye ninguna regla: falta hacer «git add»'
+          : `      lo excluye esta regla: ${patron}`
+      )
+    } catch {
+      console.log('      no lo excluye ninguna regla: falta hacer «git add»')
+    }
+    console.log()
+  }
+  console.log('  En producción darían 404 aunque en local funcionen.\n')
+  return faltantes.size
+}
+
 function main() {
   console.log('\nNIDO PJB — revisión antes de subir al repositorio\n')
 
@@ -235,7 +318,10 @@ function main() {
     }
   }
 
-  console.log('✓ No se encontró ningún secreto.\n')
+  if (revisarAssetsReferenciados() > 0) process.exit(1)
+
+  console.log('✓ No se encontró ningún secreto.')
+  console.log('✓ Todos los archivos que el código referencia están versionados.\n')
   console.log('  Puede continuar:\n')
   console.log('    git add .')
   console.log('    git commit -m "NIDO PJB"')
