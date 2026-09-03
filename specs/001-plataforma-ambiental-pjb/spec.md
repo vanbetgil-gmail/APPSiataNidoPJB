@@ -314,10 +314,13 @@ Un visitante que recorre el mapa quiere entender de dónde salen los datos. Encu
 - **FR-038c**: Una vez aprobado por primera vez, las ediciones posteriores del mismo registro DEBEN publicarse directamente sin nueva aprobación.
 - **FR-038d**: Al rechazar un registro en revisión, el responsable DEBE poder dejar un motivo, y el registro DEBE volver a estado borrador visible para su autor con ese motivo.
 - **FR-038e**: El integrante autor DEBE poder ver en todo momento el estado de cada uno de sus registros y cuáles están pendientes de revisión.
+- **FR-038f**: Cualquier integrante activo DEBE poder ver y editar las fichas del equipo, no solo las propias, con un tope de **2 ediciones de contenido por ficha**; agotado el tope, la ficha solo avanza pasando por verificación. El responsable no consume ediciones. Cambiar el estado de una ficha no cuenta como edición. El sistema DEBE mostrar cuántas ediciones quedan **antes** de gastarlas.
+- **FR-038g**: La navegación DEBE mostrar de forma destacada, junto al acceso a las fichas, cuántas están pendientes de verificación, y DEBE distinguir visiblemente el caso «hay pendientes» del caso «no hay ninguna». Esa distinción NO puede depender solo del color.
 - **FR-038f**: El responsable DEBE poder ver en un solo lugar todos los registros pendientes de revisión, con su antigüedad.
 - **FR-039**: Cada registro DEBE contener al menos una fotografía, una ubicación sobre el mapa del colegio, nombre común, nombre científico, categoría y descripción.
 - **FR-040**: El sistema DEBE permitir tomar la fotografía directamente con la cámara del dispositivo móvil o cargarla desde el dispositivo.
 - **FR-041**: El sistema DEBE impedir la publicación de registros incompletos, señalando con precisión los campos faltantes.
+- **FR-041a**: Mientras no exista ortofoto vigente, la ubicación en el mapa NO DEBE bloquear la verificación ni la publicación de una ficha, y la ficha DEBE mostrar esa ubicación como pendiente. Lo mismo aplica a la fotografía mientras el equipo la toma: la ficha muestra una ilustración de su categoría, señalada como provisional. En cuanto exista una imagen base vigente, la ubicación vuelve a exigirse sin intervención técnica.
 - **FR-042**: El sistema DEBE advertir cuando la ubicación marcada quede fuera de los límites del predio escolar representado en la imagen de fondo, e impedir marcar puntos fuera del área de esa imagen.
 - **FR-042a**: El sistema NO DEBE depender del GPS del dispositivo para ubicar los registros; la ubicación se marca siempre a mano sobre la imagen.
 - **FR-043**: El sistema DEBE registrar autoría y fecha de creación y de última modificación de cada registro de biodiversidad.

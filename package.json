@@ -21,7 +21,8 @@
     "asignar-contrasenas": "tsx scripts/asignar-contrasenas.ts",
     "verificar": "tsx scripts/verificar-conexion.ts",
     "revisar": "tsx scripts/revisar-antes-de-subir.ts",
-    "cargar-equipo": "tsx scripts/cargar-equipo.ts"
+    "cargar-equipo": "tsx scripts/cargar-equipo.ts",
+    "cargar-taxonomia": "tsx scripts/cargar-taxonomia.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.5",

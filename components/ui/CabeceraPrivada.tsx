@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Marca } from './Marca'
+import { InsigniaVerificacion } from '@/components/fichas/InsigniaVerificacion'
 import { cerrarSesion } from '@/lib/auth/acciones'
 import type { RolIntegrante } from '@/lib/supabase/tipos'
 
@@ -31,17 +32,11 @@ export function CabeceraPrivada({
         <nav className="desplazable-x flex items-center gap-1 text-sm">
           <Enlace href="/jornadas">Mediciones</Enlace>
           <Enlace href="/tableros">Tableros</Enlace>
-          <Enlace href="/fichas">Mis fichas</Enlace>
-          {esResponsable && (
-            <Enlace href="/revision">
-              Revisión
-              {pendientesRevision > 0 && (
-                <span className="ml-1.5 rounded-full bg-[color:var(--color-ica-sensibles)] px-1.5 py-0.5 text-xs text-white">
-                  {pendientesRevision}
-                </span>
-              )}
-            </Enlace>
-          )}
+          <Enlace href="/fichas">
+            Mis fichas
+            <InsigniaVerificacion cantidad={pendientesRevision} esResponsable={esResponsable} />
+          </Enlace>
+          {esResponsable && <Enlace href="/revision">Revisión</Enlace>}
           {esResponsable && <Enlace href="/admin/integrantes">Equipo</Enlace>}
         </nav>
 

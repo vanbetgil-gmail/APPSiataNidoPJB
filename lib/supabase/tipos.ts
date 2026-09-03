@@ -136,7 +136,8 @@ export type FichaBiodiversidad = {
   nombre_cientifico: string
   categoria_id: string
   descripcion: string
-  punto_mapa_id: string
+  /** Nulo mientras no exista ortofoto vigente (FR-041a, migración 0009). */
+  punto_mapa_id: string | null
   estado: EstadoFicha
   /** Una vez true, nunca vuelve a false. Es la clave de FR-038c. */
   aprobada_alguna_vez: boolean
@@ -149,6 +150,8 @@ export type FichaBiodiversidad = {
   creada_en: string
   modificada_en: string | null
   modificada_por: string | null
+  /** Ediciones de contenido gastadas. Tope de 2 para integrantes (FR-038f). */
+  ediciones_usadas: number
 }
 
 export type FotoFicha = {

@@ -17,7 +17,15 @@ export default async function LayoutPrivado({ children }: { children: React.Reac
 
   if (!integrante) redirect('/login')
 
-  const pendientes = integrante.esResponsable ? await contarPendientesRevision() : 0
+  /*
+   * Se cuenta para todos, no solo para responsables.
+   *
+   * No hace falta filtrar por rol aquí: RLS ya limita lo que cada quien ve.
+   * Un responsable cuenta las fichas de todo el equipo, que son las que debe
+   * verificar; un integrante cuenta solo las suyas, que son las que está
+   * esperando. La misma consulta responde las dos preguntas.
+   */
+  const pendientes = await contarPendientesRevision()
 
   return (
     <div className="flex min-h-dvh flex-col">

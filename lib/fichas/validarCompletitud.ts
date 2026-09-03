@@ -26,9 +26,43 @@ export interface FaltaCampo {
 
 const LARGO_MINIMO_DESCRIPCION = 30
 
+/**
+ * Qué se exige para publicar, según la fase del proyecto (FR-041a).
+ *
+ * Los dos requisitos que se pueden relajar son los que dependen de material
+ * que todavía no existe, no de que alguien no haya hecho su trabajo:
+ *
+ * · **La ubicación** necesita la ortofoto, y el vuelo de dron está
+ *   pendiente. Exigirla ahora obligaría a inventar coordenadas sobre una
+ *   imagen que va a cambiar, y quedarían todas desplazadas sin aviso.
+ *
+ * · **La fotografía** se está tomando. Mientras tanto la ficha muestra una
+ *   ilustración de la categoría, claramente marcada como provisional.
+ *
+ * Ninguno de los dos se «desactiva»: siguen apareciendo como pendientes en
+ * la ficha. Lo que cambia es que no bloquean la verificación, para que el
+ * trabajo taxonómico pueda avanzar sin esperar al dron.
+ */
+export interface ExigenciasDePublicacion {
+  /** Cierto cuando existe una ortofoto vigente. */
+  ubicacion: boolean
+  foto: boolean
+}
+
+export const EXIGENCIAS_FASE_INICIAL: ExigenciasDePublicacion = {
+  ubicacion: false,
+  foto: false,
+}
+
+export const EXIGENCIAS_COMPLETAS: ExigenciasDePublicacion = {
+  ubicacion: true,
+  foto: true,
+}
+
 export function validarCompletitud(
   ficha: Partial<FichaBiodiversidad>,
-  numeroDeFotos: number
+  numeroDeFotos: number,
+  exigencias: ExigenciasDePublicacion = EXIGENCIAS_COMPLETAS
 ): FaltaCampo[] {
   const faltan: FaltaCampo[] = []
 
@@ -70,7 +104,7 @@ export function validarCompletitud(
     })
   }
 
-  if (!ficha.punto_mapa_id) {
+  if (exigencias.ubicacion && !ficha.punto_mapa_id) {
     faltan.push({
       campo: 'punto_mapa_id',
       mensaje: 'Falta marcar dónde está: toque su ubicación sobre la imagen del colegio.',
@@ -78,7 +112,7 @@ export function validarCompletitud(
   }
 
   // FR-039: al menos una fotografía.
-  if (numeroDeFotos < 1) {
+  if (exigencias.foto && numeroDeFotos < 1) {
     faltan.push({
       campo: 'foto',
       mensaje: 'Falta la fotografía: sin imagen la ficha no se puede publicar.',
@@ -88,9 +122,41 @@ export function validarCompletitud(
   return faltan
 }
 
+/**
+ * Lo que falta pero NO impide publicar en esta fase.
+ *
+ * Se muestra igual en la ficha. Que algo no bloquee no significa que deba
+ * desaparecer de la vista: si la ubicación pendiente dejara de mostrarse,
+ * nadie se acordaría de ponerla cuando llegue la ortofoto.
+ */
+export function pendientesNoBloqueantes(
+  ficha: Partial<FichaBiodiversidad>,
+  numeroDeFotos: number,
+  exigencias: ExigenciasDePublicacion
+): FaltaCampo[] {
+  const pendientes: FaltaCampo[] = []
+
+  if (!exigencias.ubicacion && !ficha.punto_mapa_id) {
+    pendientes.push({
+      campo: 'punto_mapa_id',
+      mensaje: 'Ubicación pendiente: se marcará cuando esté lista la imagen aérea del colegio.',
+    })
+  }
+
+  if (!exigencias.foto && numeroDeFotos < 1) {
+    pendientes.push({
+      campo: 'foto',
+      mensaje: 'Fotografía pendiente: mientras tanto se muestra una ilustración de la categoría.',
+    })
+  }
+
+  return pendientes
+}
+
 export function estaCompleta(
   ficha: Partial<FichaBiodiversidad>,
-  numeroDeFotos: number
+  numeroDeFotos: number,
+  exigencias: ExigenciasDePublicacion = EXIGENCIAS_COMPLETAS
 ): boolean {
-  return validarCompletitud(ficha, numeroDeFotos).length === 0
+  return validarCompletitud(ficha, numeroDeFotos, exigencias).length === 0
 }
