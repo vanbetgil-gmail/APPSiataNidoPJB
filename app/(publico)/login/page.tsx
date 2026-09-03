@@ -63,7 +63,7 @@ export default async function PaginaLogin({
       >
         {/* ── Panel de bienvenida ───────────────────────────────────── */}
         <aside className="relative hidden min-h-[34rem] flex-col justify-between overflow-hidden p-10 lg:flex">
-          <FondoCampus />
+          <FondoCampus variante="panel" />
 
           <p className="antetitulo relative" style={{ color: 'rgba(255,255,255,.72)' }}>
             — Una ventana al cuidado
@@ -95,28 +95,31 @@ export default async function PaginaLogin({
         {/* ── Formulario ────────────────────────────────────────────── */}
         <main className="flex flex-col">
           {/* En el celular el panel de la izquierda no se muestra, así que la
-              toma aérea entra como una banda: 29 KB, sin video, y la pantalla
-              deja de ser un formulario suelto sobre fondo blanco. */}
-          <div className="relative h-32 overflow-hidden sm:h-40 lg:hidden">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/fondo/campus-movil.jpg"
-              alt=""
-              aria-hidden
-              className="h-full w-full object-cover"
-            />
-            <div
-              aria-hidden
-              className="absolute inset-0"
+              misma frase entra sobre la toma aérea, en una banda propia.
+              Lleva su propio video, mucho más ligero: ver FondoCampus. */}
+          <div className="relative flex min-h-[15rem] flex-col justify-end overflow-hidden p-6 sm:min-h-[17rem] lg:hidden">
+            <FondoCampus variante="banda" />
+
+            {/*
+              La misma tipografía de titular que en escritorio. El tamaño se
+              ajusta con `clamp` en vez de saltar por puntos de corte: entre
+              un celular pequeño y una tableta hay bastante distancia, y una
+              frase de tres líneas que cabe en uno se desborda en el otro.
+            */}
+            <h1
+              className="relative leading-[1.05]"
               style={{
-                background:
-                  'linear-gradient(180deg, rgba(18,44,36,.25) 0%, rgba(18,44,36,.55) 100%)',
+                color: '#ffffff',
+                fontFamily: 'var(--font-display)',
+                fontSize: 'clamp(2.1rem, 11vw, 3.1rem)',
               }}
-            />
-            <p
-              className="absolute bottom-3 left-4 text-xs"
-              style={{ color: 'rgba(255,255,255,.9)' }}
             >
+              El aire
+              <br />
+              <em style={{ color: 'var(--color-crema)' }}>también</em> enseña.
+            </h1>
+
+            <p className="relative mt-3 text-xs" style={{ color: 'rgba(255,255,255,.78)' }}>
               El campus visto desde el dron del proyecto
             </p>
           </div>

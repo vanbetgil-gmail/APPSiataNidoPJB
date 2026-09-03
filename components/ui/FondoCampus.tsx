@@ -3,27 +3,34 @@
 import { useSyncExternalStore } from 'react'
 
 /**
- * Fondo del acceso: toma aérea del campus.
+ * Fondo del acceso: toma aérea del campus, en video.
  *
- * ── Por qué el video NO se descarga en el celular ────────────────────────
+ * ── Dos archivos, no uno ─────────────────────────────────────────────────
+ *
+ * El panel de escritorio ocupa media pantalla; la banda del celular mide
+ * unos 200 px de alto. Servir el mismo archivo en los dos sitios significa
+ * gastar 1,6 MB del plan de datos de un estudiante para llenar una franja
+ * donde no se distingue el detalle.
+ *
+ *   escritorio → panoramica-campus.mp4   1 657 KB   12 s · 1280×720
+ *   celular    → campus-movil.mp4          318 KB    8 s ·  720×406
+ *
+ * ── Por qué la decisión se toma en JavaScript ────────────────────────────
  *
  * Un `<video>` oculto con CSS se descarga igual: el navegador no sabe que
- * nunca se va a ver. Serían 1,6 MB del plan de datos de un estudiante cada
- * vez que abre el acceso, para no ver nada.
+ * nunca se va a ver. Con `hidden lg:flex` en el panel y `lg:hidden` en la
+ * banda, cada dispositivo se habría bajado LOS DOS archivos. Por eso cada
+ * variante comprueba el ancho y solo se monta donde de verdad se ve.
  *
- * Por eso la fuente se asigna desde JavaScript y solo cuando se cumplen las
- * tres condiciones. Mientras tanto —y siempre en el celular— lo que se ve es
- * la fotografía, que pesa 29 KB.
+ * ── Cuándo no hay video en absoluto ──────────────────────────────────────
  *
- * Las tres condiciones:
+ * · `prefers-reduced-motion` activado. Hay quien marca esa opción porque el
+ *   movimiento le produce mareo, y una pantalla de acceso no es sitio para
+ *   ignorarlo.
+ * · Ahorro de datos activado. Si la persona se lo pidió al navegador,
+ *   respetarlo es lo mínimo.
  *
- *   1. Pantalla ancha. En el celular el panel ni siquiera se muestra; el
- *      video sería peso sin beneficio.
- *   2. `prefers-reduced-motion` desactivado. Hay quien marca esa opción
- *      porque el movimiento le produce mareo o desorientación, y una
- *      pantalla de acceso no es sitio para ignorarlo.
- *   3. Ahorro de datos desactivado. Si la persona pidió al navegador que
- *      ahorre datos, respetarlo es lo mínimo.
+ * En ambos casos queda la fotografía, que pesa 29 KB.
  *
  * ── Por qué la capa oscura encima ────────────────────────────────────────
  *
@@ -32,35 +39,40 @@ import { useSyncExternalStore } from 'react'
  * lo suficiente para pasar el mínimo de WCAG AA sin tapar el campus.
  */
 
-const CONSULTAS = ['(min-width: 1024px)', '(prefers-reduced-motion: reduce)'] as const
+export type VarianteFondo = 'panel' | 'banda'
 
-/**
- * `useSyncExternalStore` y no `useEffect` + `setState`.
- *
- * Es la forma que React ofrece para leer algo que vive fuera de React —aquí,
- * el tamaño de la ventana y las preferencias del sistema— y volver a
- * renderizar cuando cambia. Con un efecto que llama a `setState` habría un
- * render de más en cada carga, y además el valor del servidor y el del
- * cliente podrían discrepar durante un instante.
- */
+const ANCHA = '(min-width: 1024px)'
+const QUIETUD = '(prefers-reduced-motion: reduce)'
+
 function suscribir(alCambiar: () => void): () => void {
-  const listas = CONSULTAS.map((c) => window.matchMedia(c))
+  const listas = [window.matchMedia(ANCHA), window.matchMedia(QUIETUD)]
   listas.forEach((l) => l.addEventListener('change', alCambiar))
   return () => listas.forEach((l) => l.removeEventListener('change', alCambiar))
 }
 
-function leerCliente(): boolean {
-  const ancha = window.matchMedia('(min-width: 1024px)').matches
-  const quietud = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+/**
+ * Devuelve la variante que SÍ debe cargar video ahora mismo, o `null`.
+ *
+ * Se devuelve un solo valor en vez de dos banderas para que el resultado sea
+ * comparable: `useSyncExternalStore` vuelve a renderizar cuando el valor
+ * cambia, y un objeto nuevo en cada lectura provocaría un bucle.
+ */
+function leerCliente(): VarianteFondo | null {
+  const quietud = window.matchMedia(QUIETUD).matches
   const conexion = (navigator as { connection?: { saveData?: boolean } }).connection
-  return ancha && !quietud && conexion?.saveData !== true
+  if (quietud || conexion?.saveData === true) return null
+  return window.matchMedia(ANCHA).matches ? 'panel' : 'banda'
 }
 
 /** En el servidor no hay pantalla que medir: se asume el caso más liviano. */
-const leerServidor = () => false
+const leerServidor = (): VarianteFondo | null => null
 
-export function FondoCampus() {
-  const conVideo = useSyncExternalStore(suscribir, leerCliente, leerServidor)
+export function FondoCampus({ variante }: { variante: VarianteFondo }) {
+  const conVideoEn = useSyncExternalStore(suscribir, leerCliente, leerServidor)
+  const conVideo = conVideoEn === variante
+
+  const fuente =
+    variante === 'panel' ? '/inmersivas/panoramica-campus.mp4' : '/fondo/campus-movil.mp4'
 
   return (
     <div aria-hidden className="absolute inset-0 overflow-hidden">
@@ -84,7 +96,7 @@ export function FondoCampus() {
           className="absolute inset-0 h-full w-full object-cover"
           style={{ filter: 'saturate(0.9)' }}
         >
-          <source src="/inmersivas/panoramica-campus.mp4" type="video/mp4" />
+          <source src={fuente} type="video/mp4" />
         </video>
       )}
 
@@ -92,7 +104,9 @@ export function FondoCampus() {
         className="absolute inset-0"
         style={{
           background:
-            'linear-gradient(180deg, rgba(18,44,36,.42) 0%, rgba(18,44,36,.58) 45%, rgba(18,44,36,.82) 100%)',
+            variante === 'panel'
+              ? 'linear-gradient(180deg, rgba(18,44,36,.42) 0%, rgba(18,44,36,.58) 45%, rgba(18,44,36,.82) 100%)'
+              : 'linear-gradient(180deg, rgba(18,44,36,.30) 0%, rgba(18,44,36,.62) 100%)',
         }}
       />
     </div>
