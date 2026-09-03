@@ -54,8 +54,48 @@ if (!HOST || !USUARIO || !CLAVE) {
   console.error('    SMTP_HOST=mail.institutopedrojustoberrio.com')
   console.error('    SMTP_PORT=465')
   console.error('    SMTP_USUARIO=noreply@institutopedrojustoberrio.com')
-  console.error('    SMTP_CONTRASENA=la contraseña de ese buzón\n')
+  console.error('    SMTP_CONTRASENA=<aquí va la contraseña real de ese buzón>\n')
   console.error('  Bórrelas cuando termine. No se comparten con nadie.\n')
+  process.exit(1)
+}
+
+/**
+ * Detecta que el valor sigue siendo el texto del ejemplo.
+ *
+ * ── Por qué esta comprobación merece existir ─────────────────────────────
+ *
+ * Ya pasó. La primera versión de estas instrucciones decía
+ * `SMTP_CONTRASENA=la contraseña de ese buzón`, y eso se pegó tal cual. El
+ * servidor respondió «535 Incorrect authentication data», el script lo
+ * tradujo a «revise su usuario y su contraseña», y mandó a buscar un
+ * problema en cPanel que no existía.
+ *
+ * Un diagnóstico que confunde el error de quien lo usa con el error que
+ * viene a diagnosticar hace perder más tiempo del que ahorra.
+ */
+const MARCADORES = [
+  /^<.*>$/,
+  /^\.\.\.$/,
+  /contrase/i,
+  /aqu[ií] va/i,
+  /^la clave/i,
+  /^su /i,
+  /ejemplo/i,
+]
+
+const sospechosos: string[] = []
+if (MARCADORES.some((m) => m.test(CLAVE))) sospechosos.push('SMTP_CONTRASENA')
+if (!USUARIO.includes('@')) sospechosos.push('SMTP_USUARIO (falta la arroba)')
+
+if (sospechosos.length > 0) {
+  console.error('\n✖ Estos valores de .env.local parecen del ejemplo, no reales:\n')
+  for (const s of sospechosos) console.error(`    ${s}`)
+  console.error('\n  SMTP_CONTRASENA debe llevar la contraseña de verdad del buzón,')
+  console.error('  la misma con la que se entra a ese correo desde el webmail.')
+  console.error('  Si nadie la sabe, en cPanel → Cuentas de correo se puede')
+  console.error('  cambiar sin perder los mensajes.\n')
+  console.error('  No se intentó conectar: el servidor habría respondido «535')
+  console.error('  Incorrect authentication data» y eso no habría dicho nada útil.\n')
   process.exit(1)
 }
 
