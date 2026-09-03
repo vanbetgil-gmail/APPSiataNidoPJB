@@ -192,17 +192,35 @@ export function FormularioFicha({
 
         <div className="flex flex-col gap-1.5">
           <label htmlFor="descripcion" className="text-sm font-medium">
-            Descripción
+            Importancia biológica
           </label>
+
+          {/*
+            Las preguntas guía van FUERA del campo, no en el placeholder.
+            Un placeholder desaparece en cuanto se escribe la primera letra,
+            justo cuando se necesita recordar qué faltaba por contestar. Y
+            los lectores de pantalla no siempre lo anuncian.
+          */}
+          <ul
+            id="guia-importancia"
+            className="mb-1 flex flex-col gap-1 text-sm"
+            style={{ color: 'var(--color-texto-suave)' }}
+          >
+            <li>· ¿Qué papel cumple en el ecosistema del colegio? ¿Da sombra, alimento, refugio?</li>
+            <li>· ¿Qué aporta a la biodiversidad del campus? ¿Es nativa o introducida?</li>
+            <li>· ¿Cómo afecta a quienes pasan por ahí? ¿Mejora el aire, la temperatura, el ruido?</li>
+            <li>· ¿Qué observaron ustedes en campo que valga la pena registrar?</li>
+          </ul>
+
           <textarea
             id="descripcion"
-            rows={5}
+            rows={7}
             value={datos.descripcion}
             onChange={(e) => setDatos((d) => ({ ...d, descripcion: e.target.value }))}
-            placeholder="¿Qué observaron? ¿Dónde estaba? ¿Qué les llamó la atención?"
+            aria-describedby="guia-importancia contador-importancia"
             className="rounded-[--radius-tarjeta] border border-[color:var(--color-borde)] bg-[color:var(--color-superficie)] px-4 py-3 text-base"
           />
-          <p className="text-sm text-[color:var(--color-texto-suave)]">
+          <p id="contador-importancia" className="text-sm text-[color:var(--color-texto-suave)]">
             Escriba para alguien que no estuvo allí. {datos.descripcion.trim().length} caracteres.
           </p>
         </div>

@@ -93,13 +93,15 @@ export function validarCompletitud(
   if (!descripcion) {
     faltan.push({
       campo: 'descripcion',
-      mensaje: 'Falta la descripción: qué observaron, dónde estaba, qué les llamó la atención.',
+      mensaje:
+        'Falta la importancia biológica: qué papel cumple en el ecosistema del colegio, qué ' +
+        'aporta a la biodiversidad y qué observaron ustedes en campo.',
     })
   } else if (descripcion.length < LARGO_MINIMO_DESCRIPCION) {
     faltan.push({
       campo: 'descripcion',
       mensaje:
-        `La descripción es demasiado corta (${descripcion.length} caracteres). ` +
+        `La importancia biológica es demasiado corta (${descripcion.length} caracteres). ` +
         'Cuenten algo que le sirva a quien lea la ficha sin haber estado allí.',
     })
   }

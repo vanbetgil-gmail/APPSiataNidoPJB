@@ -41,13 +41,13 @@ export const REINOS: readonly DefinicionReino[] = [
  * trepadora» funcionen sin tener que añadirlas una por una.
  */
 const PALABRAS_FAUNA = [
-  'ave', 'pajaro', 'insecto', 'mamifero', 'reptil', 'anfibio', 'animal',
+  'fauna', 'ave', 'pajaro', 'insecto', 'mamifero', 'reptil', 'anfibio', 'animal',
   'mariposa', 'abeja', 'araña', 'arana', 'murcielago', 'ardilla', 'pez',
   'lagartija', 'rana', 'hormiga', 'escarabajo', 'libelula',
 ]
 
 const PALABRAS_FLORA = [
-  'arbol', 'arbusto', 'planta', 'flor', 'hierba', 'palma', 'helecho',
+  'flora', 'arbol', 'arbusto', 'planta', 'flor', 'hierba', 'palma', 'helecho',
   'musgo', 'enredadera', 'trepadora', 'cactus', 'suculenta', 'pasto',
   'orquidea', 'bromelia',
 ]

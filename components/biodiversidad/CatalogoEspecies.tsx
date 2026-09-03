@@ -46,7 +46,9 @@ export function CatalogoEspecies({ especies }: { especies: EspecieConFoto[] }) {
       const r = reinoDeCategoria(e.categoria)
       cuenta.set(r, (cuenta.get(r) ?? 0) + 1)
     }
-    return REINOS.filter((r) => (cuenta.get(r.reino) ?? 0) > 0).map((r) => ({
+    // Fauna y Flora siempre visibles; «Otros» solo si existe (ver
+    // FiltrosFichas.tsx para el razonamiento completo).
+    return REINOS.filter((r) => r.reino !== 'otros' || (cuenta.get(r.reino) ?? 0) > 0).map((r) => ({
       ...r,
       n: cuenta.get(r.reino) ?? 0,
     }))

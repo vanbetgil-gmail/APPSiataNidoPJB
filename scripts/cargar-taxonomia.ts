@@ -102,11 +102,11 @@ async function main() {
   const { data: categoria } = await supabase
     .from('categoria_biodiversidad')
     .select('id')
-    .eq('nombre', 'Árbol')
+    .eq('nombre', 'Flora')
     .maybeSingle()
 
   if (!categoria) {
-    console.error('✖ No existe la categoría «Árbol». Ejecute supabase/seed/catalogos.sql\n')
+    console.error('✖ No existe la categoría «Flora». Ejecute la migración 0010.\n')
     process.exit(1)
   }
 

@@ -88,6 +88,10 @@ function Ornamental() {
 }
 
 const DIBUJOS: Record<string, () => React.JSX.Element> = {
+  // Las dos categorías vigentes (migración 0010).
+  flora: Arbol,
+  fauna: Ave,
+  // Las antiguas se conservan por si queda alguna ficha sin migrar.
   árbol: Arbol,
   arbol: Arbol,
   arbusto: Arbusto,

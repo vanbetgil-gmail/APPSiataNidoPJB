@@ -67,12 +67,14 @@ on conflict (numero_serie) do nothing;
 -- Categorías de biodiversidad (FR-007)
 -- Punto de partida; el equipo puede añadir las que necesite.
 -- ---------------------------------------------------------------------
+-- Dos categorías, las mismas que ofrecen los filtros de la aplicación.
+-- Tener un catálogo más fino que los filtros hacía que quien documentara
+-- una especie no encontrara luego su ficha bajo ninguno de ellos
+-- (migración 0010). El detalle taxonómico —familia, género— va en la
+-- ficha, que es donde tiene sitio propio.
 insert into categoria_biodiversidad (nombre, icono) values
-  ('Árbol',             'arbol'),
-  ('Arbusto',           'arbusto'),
-  ('Ave',               'ave'),
-  ('Insecto',           'insecto'),
-  ('Planta ornamental', 'planta')
+  ('Fauna', 'fauna'),
+  ('Flora', 'flora')
 on conflict (nombre) do nothing;
 
 -- ---------------------------------------------------------------------

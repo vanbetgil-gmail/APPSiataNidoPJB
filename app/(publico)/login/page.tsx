@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { FondoCampus } from '@/components/ui/FondoCampus'
 import { FormularioAcceso } from './FormularioAcceso'
 
 export const metadata: Metadata = {
@@ -61,62 +62,66 @@ export default async function PaginaLogin({
         style={{ borderColor: 'var(--color-borde)', backgroundColor: 'var(--color-superficie)' }}
       >
         {/* ── Panel de bienvenida ───────────────────────────────────── */}
-        <aside
-          className="relative hidden flex-col justify-between overflow-hidden p-10 lg:flex"
-          style={{ backgroundColor: 'var(--color-salvia)' }}
-        >
-          <div
-            aria-hidden
-            className="forma-suave"
-            style={{
-              width: '18rem',
-              height: '18rem',
-              top: '-5rem',
-              right: '-6rem',
-              backgroundColor: 'var(--color-crema)',
-              opacity: 0.9,
-            }}
-          />
-          <div
-            aria-hidden
-            className="forma-suave"
-            style={{
-              width: '26rem',
-              height: '26rem',
-              bottom: '-13rem',
-              left: '-9rem',
-              backgroundColor: 'var(--color-salvia-clara)',
-            }}
-          />
+        <aside className="relative hidden min-h-[34rem] flex-col justify-between overflow-hidden p-10 lg:flex">
+          <FondoCampus />
 
-          <p className="antetitulo relative">— Una ventana al cuidado</p>
+          <p className="antetitulo relative" style={{ color: 'rgba(255,255,255,.72)' }}>
+            — Una ventana al cuidado
+          </p>
 
           <div className="relative">
-            <h1 className="text-5xl" style={{ color: 'var(--color-texto)' }}>
+            <h1 className="text-5xl" style={{ color: '#ffffff' }}>
               El aire
               <br />
-              <em style={{ color: 'var(--color-marca)' }}>también</em>
+              <em style={{ color: 'var(--color-crema)' }}>también</em>
               <br />
               enseña.
             </h1>
 
             <p
               className="mt-6 max-w-xs text-[0.95rem] leading-relaxed"
-              style={{ color: 'var(--color-texto-suave)' }}
+              style={{ color: 'rgba(255,255,255,.86)' }}
             >
               Un espacio compartido para observar el campus, conversar en familia y tomar
               decisiones tranquilas.
             </p>
           </div>
 
-          <p className="relative text-xs" style={{ color: 'var(--color-texto-suave)' }}>
-            Para familias, estudiantes y el equipo PJB
+          <p className="relative text-xs" style={{ color: 'rgba(255,255,255,.7)' }}>
+            El campus visto desde el dron del proyecto · Para familias, estudiantes y el equipo PJB
           </p>
         </aside>
 
         {/* ── Formulario ────────────────────────────────────────────── */}
-        <main className="flex items-center justify-center p-8 sm:p-12">
-          <div className="w-full max-w-sm">
+        <main className="flex flex-col">
+          {/* En el celular el panel de la izquierda no se muestra, así que la
+              toma aérea entra como una banda: 29 KB, sin video, y la pantalla
+              deja de ser un formulario suelto sobre fondo blanco. */}
+          <div className="relative h-32 overflow-hidden sm:h-40 lg:hidden">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/fondo/campus-movil.jpg"
+              alt=""
+              aria-hidden
+              className="h-full w-full object-cover"
+            />
+            <div
+              aria-hidden
+              className="absolute inset-0"
+              style={{
+                background:
+                  'linear-gradient(180deg, rgba(18,44,36,.25) 0%, rgba(18,44,36,.55) 100%)',
+              }}
+            />
+            <p
+              className="absolute bottom-3 left-4 text-xs"
+              style={{ color: 'rgba(255,255,255,.9)' }}
+            >
+              El campus visto desde el dron del proyecto
+            </p>
+          </div>
+
+          <div className="mx-auto w-full max-w-sm p-8 sm:p-12">
             <p
               className="mb-6 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs"
               style={{ backgroundColor: 'var(--color-salvia-clara)', color: 'var(--color-marca)' }}

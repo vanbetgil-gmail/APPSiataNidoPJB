@@ -63,8 +63,18 @@ export function FiltrosFichas({
       const r = reinoDeCategoria(f.categoria)
       cuenta.set(r, (cuenta.get(r) ?? 0) + 1)
     }
-    // «Otros» solo aparece si de verdad hay algo que no es fauna ni flora.
-    return REINOS.filter((r) => (cuenta.get(r.reino) ?? 0) > 0).map((r) => ({
+    /*
+     * Fauna y Flora se muestran SIEMPRE, aunque estén en cero.
+     *
+     * Un filtro que aparece solo cuando ya hay registros no le sirve a
+     * quien empieza: el equipo todavía no ha documentado ningún animal, y
+     * ver «Fauna (0)» le dice que ese trabajo existe y está por hacer. Un
+     * botón ausente no dice nada.
+     *
+     * «Otros» sí es condicional: es un cajón para lo que no encaja, y
+     * anunciarlo vacío solo confundiría.
+     */
+    return REINOS.filter((r) => r.reino !== 'otros' || (cuenta.get(r.reino) ?? 0) > 0).map((r) => ({
       ...r,
       n: cuenta.get(r.reino) ?? 0,
     }))
