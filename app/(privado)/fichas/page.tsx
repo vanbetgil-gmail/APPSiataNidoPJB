@@ -86,12 +86,26 @@ export default async function PaginaMisFichas() {
               : `${fichas.length} especie${fichas.length === 1 ? '' : 's'} documentada${fichas.length === 1 ? '' : 's'}.`}
           </p>
         </div>
-        <Link
-          href="/fichas/nueva"
-          className="rounded-full bg-[color:var(--color-marca)] px-5 py-3 font-medium text-white no-underline"
-        >
-          Documentar una especie
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          {/* FR-036: descarga en hoja de cálculo. Es un enlace normal y no un
+              botón con JavaScript porque una descarga es exactamente eso: ir
+              a buscar un archivo. Así funciona con el navegador sin más. */}
+          {fichas.length > 0 && (
+            <a
+              href="/fichas/exportar"
+              className="rounded-full border px-5 py-3 text-sm no-underline"
+              style={{ borderColor: 'var(--color-borde)', color: 'var(--color-texto)' }}
+            >
+              Exportar a Excel
+            </a>
+          )}
+          <Link
+            href="/fichas/nueva"
+            className="rounded-full bg-[color:var(--color-marca)] px-5 py-3 font-medium text-white no-underline"
+          >
+            Documentar una especie
+          </Link>
+        </div>
       </div>
 
       {enRevision.length > 0 && (
