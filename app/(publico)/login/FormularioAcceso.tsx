@@ -1,6 +1,7 @@
 'use client'
 
 import { useActionState, useState } from 'react'
+import Link from 'next/link'
 import { iniciarSesion, type EstadoFormulario } from '@/lib/auth/acciones'
 
 const INICIAL: EstadoFormulario = { tipo: 'inicial' }
@@ -75,10 +76,21 @@ export function FormularioAcceso({ rutaSolicitada }: { rutaSolicitada: string })
           </button>
         </div>
 
-        <p className="text-xs" style={{ color: 'var(--color-texto-suave)' }}>
-          La primera vez use la que le entregó el docente responsable. Después puede cambiarla desde
-          su cuenta.
-        </p>
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <p className="text-xs" style={{ color: 'var(--color-texto-suave)' }}>
+            La primera vez use la que le entregó el docente responsable.
+          </p>
+
+          {/* Va junto al campo de contraseña, no al pie del formulario:
+              es ahí donde alguien se da cuenta de que no la recuerda. */}
+          <Link
+            href="/recuperar"
+            className="text-xs"
+            style={{ color: 'var(--color-marca)' }}
+          >
+            ¿Olvidó su contraseña?
+          </Link>
+        </div>
       </div>
 
       {hayFallo && (

@@ -104,7 +104,7 @@ export async function iniciarSesion(
       tipo: 'error',
       mensaje: demasiados
         ? 'Demasiados intentos seguidos. Espere un minuto y vuelva a intentarlo.'
-        : 'La contraseña no es correcta. Si la olvidó, pídale al docente responsable que se la restablezca.',
+        : 'La contraseña no es correcta. Si la olvidó, use «¿Olvidó su contraseña?» o pídale al docente responsable que se la restablezca.',
     }
   }
 
@@ -152,6 +152,81 @@ export async function cambiarContrasena(
   }
 
   return { tipo: 'cambiada' }
+}
+
+/**
+ * Recuperación de contraseña por correo (FR-014b).
+ *
+ * ── Por qué existe, si ya hay otra vía ───────────────────────────────────
+ *
+ * El docente responsable puede restablecer la contraseña de cualquiera con
+ * `pnpm asignar-contrasenas <correo>`, y esa vía no depende del correo. Pero
+ * exige que la docente esté disponible y frente a su computador, lo que un
+ * domingo por la noche antes de una entrega no siempre ocurre.
+ *
+ * Esta es la vía autónoma. La otra sigue existiendo y es la que funciona
+ * cuando el correo falla, así que el mensaje de esta pantalla la menciona:
+ * dejar a alguien sin salida porque un servidor de correo no responde sería
+ * peor que no ofrecer la opción.
+ *
+ * ── Sobre distinguir los motivos de rechazo ──────────────────────────────
+ *
+ * Se reutiliza `verificarAcceso`, que dice si el correo es de otro dominio o
+ * si no pertenece al equipo. Revelar que una cuenta existe es un riesgo real
+ * en un servicio abierto; aquí el equipo son once personas que se conocen, y
+ * la pantalla de acceso ya lo distingue. Ser incoherente entre las dos
+ * pantallas confundiría sin proteger nada.
+ */
+export type EstadoRecuperacion =
+  | { tipo: 'inicial' }
+  | { tipo: 'enviado'; correo: string }
+  | { tipo: 'rechazado'; mensaje: string }
+  | { tipo: 'error'; mensaje: string }
+
+export async function solicitarRecuperacion(
+  _anterior: EstadoRecuperacion,
+  formulario: FormData
+): Promise<EstadoRecuperacion> {
+  const correo = normalizarCorreo(String(formulario.get('correo') ?? ''))
+
+  if (!correo) return { tipo: 'error', mensaje: 'Escriba su correo institucional.' }
+
+  const acceso = await verificarAcceso(correo)
+
+  switch (acceso.estado) {
+    case 'dominio_ajeno':
+    case 'no_autorizado':
+    case 'inactivo':
+      return { tipo: 'rechazado', mensaje: acceso.mensaje }
+    case 'error':
+      return { tipo: 'error', mensaje: acceso.mensaje }
+  }
+
+  const supabase = clienteConCookies(await cookies())
+
+  /*
+   * El enlace del correo aterriza en el canje que ya existe, con destino
+   * /cuenta. Allí está el formulario de cambio de contraseña, así que no
+   * hace falta una pantalla nueva: quien llega ya tiene sesión y lo único
+   * que necesita es escribir la nueva.
+   */
+  const origen = process.env.NEXT_PUBLIC_URL_SITIO ?? 'https://app-siata-nido-pjb.vercel.app'
+
+  const { error } = await supabase.auth.resetPasswordForEmail(correo, {
+    redirectTo: `${origen}/auth/callback?siguiente=${encodeURIComponent('/cuenta?recuperacion=1')}`,
+  })
+
+  if (error) {
+    const demasiados = /rate|too many|limit|seconds/i.test(error.message)
+    return {
+      tipo: 'error',
+      mensaje: demasiados
+        ? 'Ya se pidió un enlace hace poco. Espere un minuto y vuelva a intentarlo.'
+        : 'No se pudo enviar el correo. Pídale al docente responsable que le restablezca la contraseña.',
+    }
+  }
+
+  return { tipo: 'enviado', correo }
 }
 
 export async function cerrarSesion(): Promise<void> {

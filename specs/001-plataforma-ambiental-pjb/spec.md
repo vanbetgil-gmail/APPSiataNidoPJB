@@ -261,6 +261,7 @@ Un visitante que recorre el mapa quiere entender de dónde salen los datos. Encu
 - **FR-013a**: El alta de un integrante DEBE hacerla el responsable del proyecto registrando su correo institucional en una lista de autorizados; NO DEBE existir autorregistro.
 - **FR-014**: El sistema DEBE distinguir al menos dos niveles de permiso: integrante (registra mediciones y fichas) y responsable del proyecto (además administra el equipo, los lugares y los medidores, y aprueba la primera publicación de cada ficha de biodiversidad).
 - **FR-014a**: El ingreso DEBE hacerse con contraseña, sin depender de que llegue un correo (R-005a). El responsable del proyecto entrega la contraseña inicial y DEBE poder restablecer la de cualquier integrante que la olvide, sin intervención técnica y sin usar el correo. Cada integrante DEBE poder cambiar la suya desde la aplicación.
+- **FR-014b**: El sistema DEBE ofrecer una vía autónoma de recuperación de contraseña por correo institucional, y DEBE conservar además la vía que no depende del correo —el restablecimiento por el responsable—, porque el servidor de correo del colegio es una dependencia externa que ya ha fallado. Ninguna de las dos puede ser la única.
 - **FR-015**: Toda función de registro, edición y consulta de tableros DEBE requerir sesión iniciada.
 - **FR-016**: El sistema DEBE mantener la sesión iniciada entre usos de la aplicación y ofrecer cierre de sesión explícito.
 

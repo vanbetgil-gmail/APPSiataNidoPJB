@@ -15,9 +15,17 @@ export const metadata: Metadata = {
  * temporal de verdad. Sin un sitio donde cambiarla, once personas seguirían
  * usando indefinidamente una clave que se dictó en voz alta en un salón.
  */
-export default async function PaginaCuenta() {
+export default async function PaginaCuenta({
+  searchParams,
+}: {
+  searchParams: Promise<{ recuperacion?: string }>
+}) {
   const integrante = await integranteActual()
   if (!integrante) redirect('/login')
+
+  // Marca que pone el enlace del correo de recuperación (FR-014b).
+  const { recuperacion } = await searchParams
+  const vieneDeRecuperar = recuperacion === '1'
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-10 sm:py-14">
@@ -27,6 +35,20 @@ export default async function PaginaCuenta() {
         {integrante.correo} ·{' '}
         {integrante.rol === 'responsable' ? 'Docente responsable' : 'Integrante del equipo'}
       </p>
+
+      {vieneDeRecuperar && (
+        <div
+          role="status"
+          className="mt-6 rounded-[--radius-tarjeta] border px-5 py-4 text-sm leading-relaxed"
+          style={{
+            borderColor: 'var(--color-marca)',
+            backgroundColor: 'var(--color-salvia-clara)',
+          }}
+        >
+          <strong>Ya entró con el enlace del correo.</strong> Escriba ahora su contraseña nueva: el
+          enlace no vuelve a servir, así que si cierra sin cambiarla tendrá que pedir otro.
+        </div>
+      )}
 
       <hr className="my-9" style={{ borderColor: 'var(--color-borde)' }} />
 
@@ -43,13 +65,14 @@ export default async function PaginaCuenta() {
 
       <hr className="my-9" style={{ borderColor: 'var(--color-borde)' }} />
 
-      <h2 className="text-2xl">¿Olvidó la contraseña?</h2>
+      <h2 className="text-2xl">Si alguna vez la olvida</h2>
       <p
         className="mt-2 max-w-prose text-sm leading-relaxed"
         style={{ color: 'var(--color-texto-suave)' }}
       >
-        Pídale al docente responsable que se la restablezca. Le entregará una nueva y podrá
-        cambiarla aquí mismo.
+        Hay dos caminos, y conviene conocer los dos. Desde la pantalla de acceso, «¿Olvidó su
+        contraseña?» le envía un enlace a su correo institucional. Y si ese correo no llega, el
+        docente responsable puede restablecérsela en el momento, sin depender del correo.
       </p>
     </div>
   )
