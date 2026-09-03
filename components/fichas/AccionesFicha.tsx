@@ -115,11 +115,8 @@ export function AccionesFicha({
               key={t.accion}
               type="button"
               onClick={() => setConfirmando(t)}
-              className={`rounded-full px-4 py-2 text-sm ${
-                t.publica
-                  ? 'bg-[color:var(--color-marca)] font-medium text-white'
-                  : 'border border-[color:var(--color-borde)]'
-              }`}
+              className="rounded-full px-4 py-2 text-sm"
+              style={estiloDeBoton(t.enfasis)}
             >
               {t.etiqueta}
             </button>
@@ -137,4 +134,43 @@ export function AccionesFicha({
       )}
     </div>
   )
+}
+
+/**
+ * Tres pesos visuales, no dos.
+ *
+ * `avanza` existe para «Enviar a revisión»: mueve la ficha hacia la
+ * publicación, así que no puede verse igual que «Editar», que solo abre un
+ * formulario. Lleva el verde de la marca en el borde y el texto, sobre un
+ * fondo tenue, de modo que se distingue del botón neutro sin competir con el
+ * verde lleno de «Verificar y publicar», que es la acción definitiva.
+ *
+ * La diferencia no es solo de color: cambia también el grosor del borde y el
+ * peso de la letra. Un contraste que dependa únicamente del tono deja fuera
+ * a quien no distingue esos verdes (WCAG 1.4.1).
+ */
+function estiloDeBoton(enfasis: 'principal' | 'avanza' | 'neutro'): React.CSSProperties {
+  switch (enfasis) {
+    case 'principal':
+      return {
+        backgroundColor: 'var(--color-marca)',
+        color: '#ffffff',
+        fontWeight: 500,
+        border: '1.5px solid var(--color-marca)',
+      }
+    case 'avanza':
+      return {
+        backgroundColor: 'var(--color-salvia-clara)',
+        color: 'var(--color-marca)',
+        fontWeight: 500,
+        border: '1.5px solid var(--color-marca)',
+      }
+    case 'neutro':
+      return {
+        backgroundColor: 'transparent',
+        color: 'var(--color-texto)',
+        fontWeight: 400,
+        border: '1px solid var(--color-borde)',
+      }
+  }
 }

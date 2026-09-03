@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { TarjetaEspecie, type EspecieConFoto } from './TarjetaEspecie'
+import { REINOS, reinoDeCategoria, type Reino } from '@/lib/biodiversidad/reinos'
 
 /**
  * Catálogo público de biodiversidad — la subpestaña «Biodiversidad PJB».
@@ -26,19 +27,35 @@ function normalizar(texto: string): string {
 }
 
 export function CatalogoEspecies({ especies }: { especies: EspecieConFoto[] }) {
-  const [categoria, setCategoria] = useState<string | null>(null)
+  const [reino, setReino] = useState<Reino | null>(null)
   const [consulta, setConsulta] = useState('')
 
-  const categorias = useMemo(() => {
-    const cuenta = new Map<string, number>()
-    for (const e of especies) cuenta.set(e.categoria, (cuenta.get(e.categoria) ?? 0) + 1)
-    return [...cuenta.entries()].sort((a, b) => a[0].localeCompare(b[0], 'es'))
+  /*
+   * Se filtra por fauna y flora, no por las cinco categorías.
+   *
+   * «Árbol, Arbusto, Ave, Insecto, Planta ornamental» son cinco botones para
+   * dos preguntas: quien llega al catálogo quiere ver plantas o quiere ver
+   * animales. Las categorías siguen viviendo en cada ficha, que es donde
+   * aportan precisión; como filtro solo añadían ruido.
+   *
+   * «Otros» aparece únicamente si hay fichas que no son ninguna de las dos.
+   */
+  const grupos = useMemo(() => {
+    const cuenta = new Map<Reino, number>()
+    for (const e of especies) {
+      const r = reinoDeCategoria(e.categoria)
+      cuenta.set(r, (cuenta.get(r) ?? 0) + 1)
+    }
+    return REINOS.filter((r) => (cuenta.get(r.reino) ?? 0) > 0).map((r) => ({
+      ...r,
+      n: cuenta.get(r.reino) ?? 0,
+    }))
   }, [especies])
 
   const visibles = useMemo(() => {
     const termino = normalizar(consulta)
     return especies.filter((e) => {
-      if (categoria && e.categoria !== categoria) return false
+      if (reino && reinoDeCategoria(e.categoria) !== reino) return false
       if (termino.length < 2) return true
       return (
         normalizar(e.nombre_comun).includes(termino) ||
@@ -46,7 +63,7 @@ export function CatalogoEspecies({ especies }: { especies: EspecieConFoto[] }) {
         normalizar(e.descripcion).includes(termino)
       )
     })
-  }, [especies, categoria, consulta])
+  }, [especies, reino, consulta])
 
   if (especies.length === 0) {
     return (
@@ -75,36 +92,35 @@ export function CatalogoEspecies({ especies }: { especies: EspecieConFoto[] }) {
           className="w-full rounded-full border border-[color:var(--color-borde)] bg-[color:var(--color-superficie)] px-4 py-2.5 text-base"
         />
 
-        <div
-          className="desplazable-x flex gap-2 pb-1"
-          role="group"
-          aria-label="Filtrar por categoría"
-        >
+        <div className="desplazable-x flex gap-2 pb-1" role="group" aria-label="Filtrar">
           <button
             type="button"
-            aria-pressed={categoria === null}
-            onClick={() => setCategoria(null)}
+            aria-pressed={reino === null}
+            onClick={() => setReino(null)}
             className={`shrink-0 rounded-full border px-4 py-2 text-sm ${
-              categoria === null
+              reino === null
                 ? 'border-[color:var(--color-marca)] bg-[color:var(--color-marca)] text-white'
                 : 'border-[color:var(--color-borde)] bg-[color:var(--color-superficie)]'
             }`}
           >
             Todas ({especies.length})
           </button>
-          {categorias.map(([nombre, n]) => (
+          {grupos.map((g) => (
             <button
-              key={nombre}
+              key={g.reino}
               type="button"
-              aria-pressed={categoria === nombre}
-              onClick={() => setCategoria(categoria === nombre ? null : nombre)}
+              aria-pressed={reino === g.reino}
+              onClick={() => setReino(reino === g.reino ? null : g.reino)}
               className={`shrink-0 rounded-full border px-4 py-2 text-sm ${
-                categoria === nombre
+                reino === g.reino
                   ? 'border-[color:var(--color-marca)] bg-[color:var(--color-marca)] text-white'
                   : 'border-[color:var(--color-borde)] bg-[color:var(--color-superficie)]'
               }`}
             >
-              {nombre} ({n})
+              {/* El emoji es decorativo: la etiqueta ya dice «Fauna». Sin
+                  aria-hidden, un lector de pantalla anunciaría «pájaro
+                  Fauna», que no aclara nada. */}
+              <span aria-hidden>{g.emoji}</span> {g.etiqueta} ({g.n})
             </button>
           ))}
         </div>
@@ -124,7 +140,7 @@ export function CatalogoEspecies({ especies }: { especies: EspecieConFoto[] }) {
               type="button"
               onClick={() => {
                 setConsulta('')
-                setCategoria(null)
+                setReino(null)
               }}
               className="text-[color:var(--color-marca)] underline"
             >

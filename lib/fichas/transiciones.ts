@@ -42,6 +42,20 @@ export interface TransicionPermitida {
   consecuencia: string
   /** `true` si la acción hace visible la ficha al público. */
   publica: boolean
+  /**
+   * Peso visual del botón.
+   *
+   * Hacen falta TRES niveles, no dos. Con solo «publica / no publica»,
+   * «Enviar a revisión» acababa pintado igual que «Editar», y son cosas muy
+   * distintas: una mueve la ficha hacia la publicación y la otra abre un
+   * formulario. Quien mira la tarjeta no debería tener que leer las dos
+   * etiquetas para saber cuál es la acción que avanza.
+   *
+   *   principal → publica la ficha. Verde lleno.
+   *   avanza    → la empuja al siguiente paso. Verde tenue con borde.
+   *   neutro    → todo lo demás. Solo borde.
+   */
+  enfasis: 'principal' | 'avanza' | 'neutro'
 }
 
 /**
@@ -65,12 +79,14 @@ export function transicionesDisponibles(ctx: ContextoFicha): TransicionPermitida
             etiqueta: 'Publicar',
             consecuencia: 'La ficha volverá a verse en el mapa público de inmediato.',
             publica: true,
+            enfasis: 'principal',
           })
         } else {
           disponibles.push({
             accion: 'enviar_a_revision',
             destino: 'en_revision',
             etiqueta: 'Enviar a revisión',
+            enfasis: 'avanza',
             consecuencia:
               'El docente responsable la revisará antes de que aparezca en el mapa público. ' +
               'Es solo la primera vez: después podrá editarla libremente.',
@@ -85,7 +101,8 @@ export function transicionesDisponibles(ctx: ContextoFicha): TransicionPermitida
         disponibles.push({
           accion: 'aprobar',
           destino: 'publicado',
-          etiqueta: 'Aprobar y publicar',
+          etiqueta: 'Verificar y publicar',
+          enfasis: 'principal',
           consecuencia:
             'La ficha aparecerá en el mapa público. A partir de ahí su autor podrá editarla ' +
             'sin necesidad de nueva aprobación.',
@@ -95,6 +112,7 @@ export function transicionesDisponibles(ctx: ContextoFicha): TransicionPermitida
           accion: 'rechazar',
           destino: 'borrador',
           etiqueta: 'Devolver con observaciones',
+          enfasis: 'neutro',
           consecuencia:
             'Volverá a borrador y su autor verá el motivo que usted escriba. Podrá corregirla ' +
             'y enviarla de nuevo.',
@@ -106,6 +124,7 @@ export function transicionesDisponibles(ctx: ContextoFicha): TransicionPermitida
           accion: 'volver_a_borrador',
           destino: 'borrador',
           etiqueta: 'Retirar de revisión',
+          enfasis: 'neutro',
           consecuencia: 'Volverá a borrador para que pueda seguir trabajando en ella.',
           publica: false,
         })
@@ -118,6 +137,7 @@ export function transicionesDisponibles(ctx: ContextoFicha): TransicionPermitida
           accion: 'despublicar',
           destino: 'despublicado',
           etiqueta: 'Quitar del mapa público',
+          enfasis: 'neutro',
           consecuencia:
             'Dejará de verse públicamente, pero se conserva completa para el equipo y podrá ' +
             'volver a publicarse cuando quiera.',
@@ -132,6 +152,7 @@ export function transicionesDisponibles(ctx: ContextoFicha): TransicionPermitida
           accion: 'republicar',
           destino: 'publicado',
           etiqueta: 'Volver a publicar',
+          enfasis: 'principal',
           consecuencia:
             'Volverá al mapa público de inmediato: ya fue aprobada una vez y no necesita ' +
             'nueva revisión.',
