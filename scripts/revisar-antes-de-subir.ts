@@ -96,6 +96,28 @@ const PATRONES: Patron[] = [
     explicacion: 'Clave criptográfica privada.',
   },
   {
+    nombre: 'Enlace de carpeta compartida (SharePoint, OneDrive o Drive)',
+    /*
+     * No parece un secreto y lo es.
+     *
+     * Un enlace de estos lleva dentro un token de compartición: quien lo
+     * tiene entra a la carpeta. Escribirlo en el código de un repositorio
+     * público equivale a dejar la carpeta abierta a internet, y aquí esas
+     * carpetas guardan fotografías tomadas por estudiantes dentro del
+     * colegio.
+     *
+     * Se buscan las formas de enlace COMPARTIDO, no cualquier URL del
+     * dominio: `/:f:/`, `/:w:/`, `?e=` de SharePoint y OneDrive, y los
+     * identificadores largos de Google Drive.
+     */
+    expresion:
+      /(sharepoint\.com\/:[a-z]:\/|1drv\.ms\/|onedrive\.live\.com\/\?|drive\.google\.com\/(drive\/folders|file\/d)\/[A-Za-z0-9_-]{20,})/i,
+    gravedad: 'critico',
+    explicacion:
+      'Es una llave, aunque parezca una dirección: quien la tenga abre la carpeta. ' +
+      'Póngala en una variable de entorno SIN el prefijo NEXT_PUBLIC_ y léala en el servidor.',
+  },
+  {
     nombre: 'Clave anónima de Supabase',
     // Al menos 100 caracteres: descarta los marcadores de ejemplo de la
     // documentación, como `eyJhbGci...`, que no son claves reales.

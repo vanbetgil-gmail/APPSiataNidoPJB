@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { crearClienteServidor } from '@/lib/supabase/servidor'
 import { exigirIntegrante } from '@/lib/auth/sesion'
+import { AvisoRegistroFotografico } from '@/components/fichas/AvisoRegistroFotografico'
 import { InsigniaVerificacion } from '@/components/fichas/InsigniaVerificacion'
 import { ListaFichas, type FichaConContexto } from '@/components/fichas/ListaFichas'
 import { Tarjeta } from '@/components/ui/Tarjeta'
@@ -106,6 +107,19 @@ export default async function PaginaClasificacionTaxonomica() {
             Documentar una especie
           </Link>
         </div>
+      </div>
+
+      {/*
+        Va arriba del todo porque es lo que desbloquea las fichas: sin
+        fotografía ninguna se puede publicar, así que el aviso pertenece
+        antes de la lista, no enterrado debajo de ella.
+
+        El enlace se lee en el servidor. `CARPETA_FOTOS_URL` NO lleva el
+        prefijo NEXT_PUBLIC_ a propósito: así no viaja al navegador ni acaba
+        en el repositorio, que es público.
+      */}
+      <div className="mt-7">
+        <AvisoRegistroFotografico url={process.env.CARPETA_FOTOS_URL ?? null} />
       </div>
 
       {enRevision.length > 0 && (
