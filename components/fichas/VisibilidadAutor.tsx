@@ -56,7 +56,7 @@ export function VisibilidadAutor({
           <span className="block text-[color:var(--color-texto-suave)]">
             {mostrarAutor
               ? 'Su nombre aparece públicamente en esta ficha. Puede retirarlo cuando quiera.'
-              : 'La ficha se atribuye al equipo NIDO PJB, sin su nombre.'}
+              : 'La ficha se atribuye al equipo SIATA PJB, sin su nombre.'}
           </span>
         </span>
       </label>

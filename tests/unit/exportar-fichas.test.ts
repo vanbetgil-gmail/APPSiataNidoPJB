@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx'
 import { describe, expect, it } from 'vitest'
 import { construirLibroDeFichas, nombreDelArchivo, type FichaExportable } from '@/lib/fichas/exportar'
+import { COLEGIO } from '@/lib/marca'
 
 /**
  * Exportación de fichas a hoja de cálculo — FR-036, FR-051.
@@ -80,11 +81,11 @@ describe('Exportación de fichas', () => {
     )
     const { crudo } = leer(libro)
     expect(crudo).toContain('Fichas exportadas')
-    expect(crudo).toContain('Instituto Salesiano Pedro Justo Berrío')
+    expect(crudo).toContain(COLEGIO)
   })
 
   it('nombra el archivo con la fecha', () => {
-    expect(nombreDelArchivo()).toMatch(/^NIDO-PJB-fichas-\d{4}-\d{2}-\d{2}\.xlsx$/)
+    expect(nombreDelArchivo()).toMatch(/^SIATA-PJB-fichas-\d{4}-\d{2}-\d{2}\.xlsx$/)
   })
 
   it('exporta un libro válido aunque no haya ninguna ficha', () => {

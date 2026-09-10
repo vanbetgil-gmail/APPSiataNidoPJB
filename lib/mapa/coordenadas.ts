@@ -5,7 +5,7 @@ import type { ImagenBaseMapa } from '@/lib/supabase/tipos'
  *
  * ── Por qué existe este archivo ──────────────────────────────────────────
  *
- * El mapa de NIDO PJB no es geográfico: es una ortofoto de dron sobre la que
+ * El mapa de SIATA PJB no es geográfico: es una ortofoto de dron sobre la que
  * se marcan puntos a mano (FR-006, FR-006a). Las posiciones se guardan como
  * FRACCIONES del ancho y el alto de la imagen (0–1), no como píxeles.
  *

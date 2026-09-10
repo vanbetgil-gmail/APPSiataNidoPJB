@@ -76,7 +76,7 @@ export function TarjetaEspecie({ especie }: { especie: EspecieConFoto }) {
         {/* FR-051f: sin nombre visible, se atribuye al equipo. Nunca queda
             sin atribución alguna. */}
         <p className="mt-auto pt-3 text-xs" style={{ color: 'var(--color-texto-suave)' }}>
-          {especie.autor_visible ? `Documentada por ${especie.autor_visible}` : 'Equipo NIDO PJB'}
+          {especie.autor_visible ? `Documentada por ${especie.autor_visible}` : 'Equipo SIATA PJB'}
         </p>
       </div>
     </Link>

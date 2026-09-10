@@ -1,3 +1,4 @@
+import { CIUDAD, COLEGIO, MARCA, PLATAFORMA, PLATAFORMA_LARGA } from '@/lib/marca'
 import Link from 'next/link'
 import { Marca } from '@/components/ui/Marca'
 import { NavegacionEscritorio, NavegacionMovil } from '@/components/ui/NavegacionPublica'
@@ -69,10 +70,10 @@ export default async function LayoutPublico({ children }: { children: React.Reac
         }}
       >
         <p className="text-sm" style={{ color: 'var(--color-texto)' }}>
-          NIDO PJB · Nodo de Investigación y Datos Observados
+          {MARCA} · {PLATAFORMA} — {PLATAFORMA_LARGA}
         </p>
         <p className="mt-1 text-xs" style={{ color: 'var(--color-texto-suave)' }}>
-          Proyecto ambiental escolar del Instituto Salesiano Pedro Justo Berrío, Medellín
+          Proyecto ambiental escolar del {COLEGIO}, {CIUDAD}
         </p>
       </footer>
 

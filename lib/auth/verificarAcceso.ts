@@ -94,7 +94,7 @@ export async function verificarAcceso(correoBruto: string): Promise<ResultadoAcc
     return {
       estado: 'no_autorizado',
       mensaje:
-        'Este correo es del colegio, pero no está autorizado para el proyecto NIDO PJB. ' +
+        'Este correo es del colegio, pero no está autorizado para el proyecto SIATA PJB. ' +
         'Pida al docente responsable que lo agregue al equipo.',
     }
   }

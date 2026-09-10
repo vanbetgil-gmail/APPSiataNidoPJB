@@ -72,7 +72,7 @@ export function CatalogoEspecies({ especies }: { especies: EspecieConFoto[] }) {
       <div className="rounded-[--radius-tarjeta] border border-[color:var(--color-borde)] bg-[color:var(--color-superficie)] p-8 text-center">
         <h2 className="text-lg font-semibold">Aún no hay especies registradas</h2>
         <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-[color:var(--color-texto-suave)]">
-          El equipo de NIDO PJB está documentando la biodiversidad del colegio. Cada árbol, ave o
+          El equipo de SIATA PJB está documentando la biodiversidad del colegio. Cada árbol, ave o
           insecto que encuentran se registra aquí con su fotografía y su descripción.
         </p>
       </div>

@@ -6,7 +6,7 @@ import type { ImagenBaseMapa } from '@/lib/supabase/tipos'
 import { leafletARelativa, limitesDeLaImagen } from '@/lib/mapa/coordenadas'
 
 /**
- * Mapa base de NIDO PJB (T027, T036, T037).
+ * Mapa base de SIATA PJB (T027, T036, T037).
  *
  * Leaflet con CRS.Simple sobre la pirámide de teselas de la ortofoto de dron.
  * No es un mapa geográfico: no hay proveedor de mapas, ni clave de API, ni

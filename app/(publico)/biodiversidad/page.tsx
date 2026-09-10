@@ -10,7 +10,7 @@ import type { FichaBiodiversidad, FichaPublica } from '@/lib/supabase/tipos'
 export const metadata: Metadata = {
   title: 'Biodiversidad PJB',
   description:
-    'La fauna y la flora del Instituto Salesiano Pedro Justo Berrío, documentadas por los estudiantes del proyecto NIDO PJB.',
+    'La fauna y la flora del Instituto Salesiano Pedro Justo Berrío, documentadas por los estudiantes del proyecto SIATA PJB.',
 }
 
 /**

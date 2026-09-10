@@ -4,7 +4,7 @@ import { FormularioRecuperacion } from './FormularioRecuperacion'
 
 export const metadata: Metadata = {
   title: 'Recuperar contraseña',
-  description: 'Recupere el acceso a NIDO PJB con su correo institucional.',
+  description: 'Recupere el acceso a SIATA PJB con su correo institucional.',
 }
 
 /**

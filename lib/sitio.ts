@@ -3,7 +3,7 @@
  *
  * ── Por qué esto merece un archivo propio ────────────────────────────────
  *
- * NIDO PJB se aloja en el dominio del colegio, y hay al menos cuatro cosas
+ * SIATA PJB se aloja en el dominio del colegio, y hay al menos cuatro cosas
  * que dejan de funcionar si la aplicación no sabe cuál es su propia dirección:
  *
  *  1. **El enlace de acceso.** Es el fallo más grave y el más silencioso: si

@@ -5,7 +5,7 @@ import { FormularioContrasena } from './FormularioContrasena'
 
 export const metadata: Metadata = {
   title: 'Mi cuenta',
-  description: 'Cambiar la contraseña de acceso a NIDO PJB.',
+  description: 'Cambiar la contraseña de acceso a SIATA PJB.',
 }
 
 /**

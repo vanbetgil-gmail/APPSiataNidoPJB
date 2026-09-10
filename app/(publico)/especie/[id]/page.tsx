@@ -141,9 +141,9 @@ export default async function PaginaEspecie({ params }: { params: Promise<{ id: 
         {/* FR-051f: sin nombre visible, la ficha se atribuye al equipo.
             Nunca queda sin atribución alguna. */}
         {ficha.autor_visible ? (
-          <p>Documentada por {ficha.autor_visible}, del equipo NIDO PJB.</p>
+          <p>Documentada por {ficha.autor_visible}, del equipo SIATA PJB.</p>
         ) : (
-          <p>Documentada por el equipo NIDO PJB.</p>
+          <p>Documentada por el equipo SIATA PJB.</p>
         )}
       </footer>
     </article>

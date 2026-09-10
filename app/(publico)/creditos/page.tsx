@@ -6,7 +6,7 @@ import { Aviso } from '@/components/ui/Aviso'
 export const metadata: Metadata = {
   title: 'El equipo',
   description:
-    'Los estudiantes y la docente que sostienen el proyecto NIDO PJB en el Instituto Salesiano Pedro Justo Berrío.',
+    'Los estudiantes y la docente que sostienen el proyecto SIATA PJB en el Instituto Salesiano Pedro Justo Berrío.',
 }
 
 export const revalidate = 300
@@ -146,7 +146,7 @@ export default async function PaginaEquipo() {
         <h1 className="text-4xl sm:text-5xl">
           El equipo
           <br />
-          <em style={{ color: 'var(--color-marca)' }}>NIDO PJB</em>
+          <em style={{ color: 'var(--color-marca)' }}>SIATA PJB</em>
         </h1>
         <p className="mt-6 leading-relaxed" style={{ color: 'var(--color-texto-suave)' }}>
           Estudiantes del Instituto Salesiano Pedro Justo Berrío que salen al campus con un medidor en la

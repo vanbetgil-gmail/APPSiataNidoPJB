@@ -5,7 +5,7 @@ import { FormularioAcceso } from './FormularioAcceso'
 
 export const metadata: Metadata = {
   title: 'Ingresar',
-  description: 'Acceso para integrantes del proyecto NIDO PJB.',
+  description: 'Acceso para integrantes del proyecto SIATA PJB.',
 }
 
 /**

@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx'
+import { COLEGIO, MARCA } from '@/lib/marca'
 import type { EstadoFicha } from '@/lib/supabase/tipos'
 
 /**
@@ -106,8 +107,8 @@ export function construirLibroDeFichas(
   // Quien lo abra dentro de dos años no va a tener el contexto de hoy. Un
   // archivo suelto sin procedencia es un archivo del que nadie se fía.
   const info = [
-    ['NIDO PJB — Fichas de biodiversidad'],
-    ['Instituto Salesiano Pedro Justo Berrío'],
+    [`${MARCA} — Fichas de biodiversidad`],
+    [COLEGIO],
     [],
     ['Generado el', new Date().toLocaleString('es-CO')],
     ['Generado por', generadaPor],
@@ -138,7 +139,14 @@ export function construirLibroDeFichas(
   return XLSX.write(libro, { type: 'buffer', bookType: 'xlsx' }) as Buffer
 }
 
-/** `NIDO-PJB-fichas-2026-09-02.xlsx` */
+/**
+ * `SIATA-PJB-fichas-2026-09-10.xlsx`
+ *
+ * El nombre sale de la marca, no de una cadena escrita a mano: si el
+ * proyecto vuelve a cambiar de nombre, los archivos que el equipo descargue
+ * lo llevarán sin que nadie tenga que acordarse de este renglón.
+ */
 export function nombreDelArchivo(): string {
-  return `NIDO-PJB-fichas-${new Date().toISOString().slice(0, 10)}.xlsx`
+  const prefijo = MARCA.replace(/\s+/g, '-')
+  return `${prefijo}-fichas-${new Date().toISOString().slice(0, 10)}.xlsx`
 }

@@ -1,5 +1,5 @@
 /**
- * Tipos del esquema de NIDO PJB.
+ * Tipos del esquema de SIATA PJB.
  *
  * Escritos a mano a partir de supabase/migrations/0001_esquema_inicial.sql.
  *

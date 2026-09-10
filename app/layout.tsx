@@ -1,5 +1,13 @@
 import type { Metadata, Viewport } from 'next'
 import { Fraunces, Inter } from 'next/font/google'
+import {
+  CIUDAD,
+  COLEGIO,
+  DESCRIPCION_PORTADA,
+  MARCA,
+  PLANTILLA_TITULO,
+  TITULO_PORTADA,
+} from '@/lib/marca'
 import { urlSitio, esDominioDefinitivo } from '@/lib/sitio'
 import './globals.css'
 
@@ -36,25 +44,24 @@ export const metadata: Metadata = {
   metadataBase: new URL(urlSitio()),
 
   title: {
-    default: 'NIDO PJB — Mapa de biodiversidad del Instituto Salesiano Pedro Justo Berrío',
-    template: '%s · NIDO PJB',
+    default: TITULO_PORTADA,
+    template: PLANTILLA_TITULO,
   },
-  description:
-    'Nodo de Investigación y Datos Observados del Instituto Salesiano Pedro Justo Berrío. Mapa de biodiversidad escolar y registro de mediciones de calidad del aire, hechos por los estudiantes.',
-  applicationName: 'NIDO PJB',
-  authors: [{ name: 'Equipo NIDO PJB — Instituto Salesiano Pedro Justo Berrío' }],
+  description: DESCRIPCION_PORTADA,
+  applicationName: MARCA,
+  authors: [{ name: `Equipo ${MARCA} — ${COLEGIO}` }],
   keywords: [
     'biodiversidad escolar',
     'calidad del aire',
-    'Instituto Salesiano Pedro Justo Berrío',
-    'Medellín',
+    COLEGIO,
+    CIUDAD,
     'proyecto ambiental',
     'SIATA',
   ],
 
   // FR-045b: instalable en el celular como ícono de pantalla de inicio
   manifest: '/manifest.json',
-  appleWebApp: { capable: true, title: 'NIDO PJB', statusBarStyle: 'default' },
+  appleWebApp: { capable: true, title: MARCA, statusBarStyle: 'default' },
   icons: { icon: '/iconos/icono-192.png', apple: '/iconos/icono-192.png' },
 
   alternates: { canonical: '/' },
@@ -62,18 +69,18 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'es_CO',
-    siteName: 'NIDO PJB',
-    title: 'NIDO PJB — Mapa de biodiversidad del Instituto Salesiano Pedro Justo Berrío',
+    siteName: MARCA,
+    title: TITULO_PORTADA,
     description:
       'Los árboles, las aves y los insectos del colegio, documentados uno a uno por los estudiantes.',
     url: '/',
-    images: [{ url: '/iconos/icono-512.png', width: 512, height: 512, alt: 'NIDO PJB' }],
+    images: [{ url: '/iconos/icono-512.png', width: 512, height: 512, alt: MARCA }],
   },
 
   twitter: {
     card: 'summary_large_image',
-    title: 'NIDO PJB',
-    description: 'Mapa de biodiversidad del Instituto Salesiano Pedro Justo Berrío.',
+    title: MARCA,
+    description: `Mapa de biodiversidad del ${COLEGIO}.`,
   },
 
   /*
