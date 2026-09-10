@@ -245,7 +245,27 @@ export async function solicitarRecuperacion(
   return { tipo: 'enviado', correo }
 }
 
+/**
+ * Cierre de sesión explícito (FR-016).
+ *
+ * ── Por qué redirige, y no basta con borrar la sesión ────────────────────
+ *
+ * Sin el `redirect`, tras pulsar «Salir» la persona se quedaba en la misma
+ * pantalla privada. La sesión sí se borraba, pero la página ya renderizada
+ * seguía a la vista, y solo al navegar a otro sitio aparecía el acceso.
+ *
+ * Eso es peor que no tener botón: quien pulsa «Salir» y sigue viendo los
+ * tableros concluye que no funcionó —o, al revés, cree que salió y se
+ * levanta del computador dejándolo con datos del equipo en pantalla—.
+ *
+ * El destino es la portada y no `/login`: quien acaba de salir no quiere
+ * volver a entrar, quiere irse. El mapa público es el sitio natural.
+ *
+ * `redirect` lanza una excepción de control interna de Next.js, así que va
+ * FUERA de cualquier try/catch y al final de la función.
+ */
 export async function cerrarSesion(): Promise<void> {
   const supabase = clienteConCookies(await cookies())
   await supabase.auth.signOut()
+  redirect('/')
 }

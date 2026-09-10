@@ -236,8 +236,10 @@ async function main() {
   }
 
   const porLugar = new Map(lugares.map((l) => [plegar(l.nombre), l.id]))
-  // «Op» no es un lugar real; la semilla lo dejó con nombre de marcador.
-  const idOp = lugares.find((l) => l.nombre.includes('Op'))?.id ?? null
+  // El archivo abrevia este lugar como «Op»; el catálogo lo tiene con su
+  // nombre completo, así que la coincidencia por texto no lo encuentra sola.
+  const idOp =
+    lugares.find((l) => plegar(l.nombre).includes('operacion de eventos'))?.id ?? null
   const porSerie = new Map(medidores.map((m) => [m.numero_serie, m.id]))
   const porAlias = new Map((alias ?? []).map((a) => [a.alias.toLowerCase(), a.integrante_id]))
 
@@ -277,10 +279,15 @@ async function main() {
     }
 
     if (!lugarId && plegado === 'op') {
-      // FR-031: no se adivina a qué lugar corresponde. Entra marcado como
-      // dudoso para poder excluirlo de los análisis hasta que se resuelva.
+      /*
+       * «Op» es la abreviatura con que el formulario recogía el Taller
+       * Operación de Eventos (confirmado por el equipo el 2026-09-10,
+       * migración 0011). Se sigue reconociendo aquí porque el archivo
+       * histórico la trae así y no va a cambiar.
+       *
+       * Ya no entra como dudoso: se sabe qué lugar es.
+       */
       lugarId = idOp
-      dudoso = true
     }
 
     if (!lugarId) {

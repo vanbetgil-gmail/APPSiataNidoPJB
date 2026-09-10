@@ -35,15 +35,13 @@ insert into lugar_medicion (nombre, es_interior) values
   ('Artes Gráficas',                 true)
 on conflict (nombre) do nothing;
 
--- ⚠️ PENDIENTE DEL COLEGIO — «Op» aparece en 12 de los 135 registros
--- históricos y no corresponde a ningún lugar identificable.
+-- «Op» en el histórico es el Taller Operación de Eventos.
 --
--- Se siembra con nombre explícito de marcador para que NADIE lo confunda con
--- un lugar real. Sustituir por el nombre verdadero antes de ejecutar la
--- migración del histórico (scripts/migrar-historico.ts).
--- Mientras tanto, esos 12 registros se importan con dato_dudoso = true.
-insert into lugar_medicion (nombre, es_interior, activo) values
-  ('SIN IDENTIFICAR (registrado como «Op»)', true, false)
+-- El archivo lo traía abreviado y durante un tiempo se sembró con un nombre
+-- de marcador, con esos 12 registros marcados como dudosos. El equipo lo
+-- confirmó el 2026-09-10 (migración 0011).
+insert into lugar_medicion (nombre, es_interior) values
+  ('Taller Operación de Eventos', true)
 on conflict (nombre) do nothing;
 
 -- ---------------------------------------------------------------------
