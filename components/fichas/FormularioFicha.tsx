@@ -3,21 +3,51 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { crearClienteNavegador } from '@/lib/supabase/cliente'
-import { validarCompletitud, type CampoFicha } from '@/lib/fichas/validarCompletitud'
-import type { CategoriaBiodiversidad, ImagenBaseMapa } from '@/lib/supabase/tipos'
+import {
+  EXIGENCIAS_COMPLETAS,
+  EXIGENCIAS_FASE_INICIAL,
+  validarCompletitud,
+  type CampoFicha,
+} from '@/lib/fichas/validarCompletitud'
+import type {
+  CategoriaBiodiversidad,
+  FichaBiodiversidad,
+  ImagenBaseMapa,
+  ZonaCampus,
+} from '@/lib/supabase/tipos'
 import { SelectorUbicacion } from './SelectorUbicacion'
 import { CargarFoto, type FotoPendiente } from './CargarFoto'
 import { AvisoPersonas } from './AvisoPersonas'
 
 /**
- * Formulario de ficha de biodiversidad (T091, T094).
+ * Formulario de ficha de biodiversidad (T091, T094) — FR-021a, FR-041a.
+ *
+ * Sirve para crear y para editar. Son el mismo formulario a propósito: dos
+ * versiones separadas acaban divergiendo, y quien edita se encuentra campos
+ * que no estaban al crear.
  *
  * Guarda como BORRADOR. La publicación es un paso aparte y deliberado
  * (FR-038a): así nadie publica sin querer al pulsar «guardar».
  *
- * El orden de los campos sigue el de una salida de campo real: primero la
- * foto, que es lo que se acaba de tomar; luego dónde estaba; y al final los
- * nombres, que a veces hay que consultar.
+ * El orden sigue el de una salida de campo real: primero la foto, que es lo
+ * que se acaba de tomar; luego dónde estaba; después los nombres, que a
+ * veces hay que consultar; y al final quién la registró.
+ *
+ * ── Por qué la ubicación ya no bloquea ───────────────────────────────────
+ *
+ * Antes el guardado empezaba con `if (!datos.punto) throw`, y el punto solo
+ * podía marcarse sobre la ortofoto. Como la ortofoto no existe, era
+ * imposible crear una ficha: el formulario se abría, se rellenaba entero y
+ * al guardar decía que faltaba marcar un mapa que la propia pantalla
+ * declaraba no disponible.
+ *
+ * Ahora la ubicación son dos datos distintos que conviven:
+ *
+ *   · La ZONA —«Cancha de la Fraternidad»— que se elige de una lista y
+ *     funciona hoy.
+ *   · El PUNTO sobre la ortofoto, cuando exista, que dice exactamente dónde.
+ *
+ * Ninguno sustituye al otro y ninguno es obligatorio para guardar.
  */
 
 export interface DatosFicha {
@@ -25,31 +55,53 @@ export interface DatosFicha {
   nombre_cientifico: string
   categoria_id: string
   descripcion: string
+  zona_id: string
+  autor_id: string
   punto: { x: number; y: number } | null
-}
-
-const VACIA: DatosFicha = {
-  nombre_comun: '',
-  nombre_cientifico: '',
-  categoria_id: '',
-  descripcion: '',
-  punto: null,
 }
 
 export function FormularioFicha({
   categorias,
+  zonas,
+  integrantes,
   imagen,
-  autorId,
+  autorPorDefecto,
+  esResponsable,
+  ficha,
 }: {
   categorias: CategoriaBiodiversidad[]
+  zonas: ZonaCampus[]
+  /** Para el desplegable de autoría. Ya vienen ordenados. */
+  integrantes: { id: string; nombre: string }[]
   imagen: Pick<ImagenBaseMapa, 'ruta_teselas' | 'zoom_maximo' | 'ancho_px' | 'alto_px'> | null
-  autorId: string
+  autorPorDefecto: string
+  esResponsable: boolean
+  /** Presente al editar; ausente al crear. */
+  ficha?: FichaBiodiversidad
 }) {
   const router = useRouter()
-  const [datos, setDatos] = useState<DatosFicha>(VACIA)
+  const editando = Boolean(ficha)
+
+  const [datos, setDatos] = useState<DatosFicha>({
+    nombre_comun: ficha?.nombre_comun ?? '',
+    nombre_cientifico: ficha?.nombre_cientifico ?? '',
+    categoria_id: ficha?.categoria_id ?? '',
+    descripcion: ficha?.descripcion ?? '',
+    zona_id: ficha?.zona_id ?? '',
+    autor_id: ficha?.autor_id ?? autorPorDefecto,
+    punto: null,
+  })
+
+  const [zonasDisponibles, setZonasDisponibles] = useState(zonas)
+  const [zonaNueva, setZonaNueva] = useState('')
+  const [anadiendoZona, setAnadiendoZona] = useState(false)
+
   const [fotos, setFotos] = useState<FotoPendiente[]>([])
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // FR-041a: sin ortofoto, ni la ubicación ni la foto bloquean.
+  const exigencias = imagen ? EXIGENCIAS_COMPLETAS : EXIGENCIAS_FASE_INICIAL
 
   const faltantes = validarCompletitud(
     {
@@ -57,11 +109,50 @@ export function FormularioFicha({
       nombre_cientifico: datos.nombre_cientifico,
       categoria_id: datos.categoria_id || undefined,
       descripcion: datos.descripcion,
-      punto_mapa_id: datos.punto ? 'pendiente' : undefined,
+      punto_mapa_id: datos.punto ? 'pendiente' : (ficha?.punto_mapa_id ?? undefined),
     },
-    fotos.length
+    fotos.length,
+    exigencias
   )
   const faltaCampo = (campo: CampoFicha) => faltantes.some((f) => f.campo === campo)
+
+  /**
+   * Añadir una zona — solo el responsable (migración 0012).
+   *
+   * Se hace aquí y no en una pantalla aparte porque el momento en que
+   * alguien descubre que falta una zona es justo este: con la ficha a medio
+   * llenar. Mandarla a otra pantalla significaría perder lo escrito.
+   */
+  async function anadirZona() {
+    const nombre = zonaNueva.trim()
+    if (!nombre) return
+
+    setAnadiendoZona(true)
+    setError(null)
+
+    const supabase = crearClienteNavegador()
+    const { data, error: e } = await supabase
+      .from('zona_campus')
+      .insert({ nombre, creada_por: autorPorDefecto })
+      .select('*')
+      .single()
+
+    setAnadiendoZona(false)
+
+    if (e || !data) {
+      setError(
+        /duplicate|unique/i.test(e?.message ?? '')
+          ? `La zona «${nombre}» ya existe en la lista.`
+          : 'No se pudo añadir la zona.'
+      )
+      return
+    }
+
+    const zona = data as ZonaCampus
+    setZonasDisponibles((z) => [...z, zona].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')))
+    setDatos((d) => ({ ...d, zona_id: zona.id }))
+    setZonaNueva('')
+  }
 
   async function guardar() {
     setGuardando(true)
@@ -69,41 +160,62 @@ export function FormularioFicha({
     const supabase = crearClienteNavegador()
 
     try {
-      if (!datos.punto) throw new Error('Falta marcar la ubicación en el mapa.')
+      // El punto del mapa solo se crea si de verdad se marcó uno.
+      let puntoId: string | null = ficha?.punto_mapa_id ?? null
 
-      // 1. El punto del mapa. Se crea antes porque la ficha lo referencia.
-      const { data: punto, error: errorPunto } = await supabase
-        .from('punto_mapa')
-        .insert({
-          x_relativa: datos.punto.x,
-          y_relativa: datos.punto.y,
-          imagen_base_version: 1,
-        })
-        .select('id')
-        .single()
+      if (datos.punto) {
+        const { data: punto, error: errorPunto } = await supabase
+          .from('punto_mapa')
+          .insert({
+            x_relativa: datos.punto.x,
+            y_relativa: datos.punto.y,
+            imagen_base_version: 1,
+          })
+          .select('id')
+          .single()
 
-      if (errorPunto || !punto) throw new Error('No se pudo guardar la ubicación.')
+        if (errorPunto || !punto) throw new Error('No se pudo guardar la ubicación en el mapa.')
+        puntoId = punto.id
+      }
 
-      // 2. La ficha, siempre como borrador.
-      const { data: ficha, error: errorFicha } = await supabase
-        .from('ficha_biodiversidad')
-        .insert({
-          nombre_comun: datos.nombre_comun.trim(),
-          nombre_cientifico: datos.nombre_cientifico.trim(),
-          categoria_id: datos.categoria_id,
-          descripcion: datos.descripcion.trim(),
-          punto_mapa_id: punto.id,
-          autor_id: autorId,
-          estado: 'borrador',
-        })
-        .select('id')
-        .single()
+      const campos = {
+        nombre_comun: datos.nombre_comun.trim(),
+        nombre_cientifico: datos.nombre_cientifico.trim(),
+        categoria_id: datos.categoria_id,
+        descripcion: datos.descripcion.trim(),
+        zona_id: datos.zona_id || null,
+        punto_mapa_id: puntoId,
+        autor_id: datos.autor_id,
+      }
 
-      if (errorFicha || !ficha) throw new Error('No se pudo guardar la ficha.')
+      let fichaId: string
 
-      // 3. Las fotos, ya redimensionadas en el navegador.
+      if (ficha) {
+        const { error: e } = await supabase
+          .from('ficha_biodiversidad')
+          .update(campos)
+          .eq('id', ficha.id)
+
+        if (e) {
+          // El disparador del tope de ediciones habla en español y su
+          // mensaje es más útil que cualquier cosa que pudiéramos escribir.
+          throw new Error(e.message)
+        }
+        fichaId = ficha.id
+      } else {
+        const { data: creada, error: e } = await supabase
+          .from('ficha_biodiversidad')
+          .insert({ ...campos, estado: 'borrador' })
+          .select('id')
+          .single()
+
+        if (e || !creada) throw new Error(e?.message ?? 'No se pudo guardar la ficha.')
+        fichaId = creada.id
+      }
+
+      // Las fotos, ya redimensionadas en el navegador.
       for (const [indice, foto] of fotos.entries()) {
-        const ruta = `${ficha.id}/${indice}-${Date.now()}.jpg`
+        const ruta = `${fichaId}/${indice}-${Date.now()}.jpg`
         const { error: errorSubida } = await supabase.storage
           .from('fotos-fichas')
           .upload(ruta, foto.archivo, { contentType: 'image/jpeg', upsert: false })
@@ -111,14 +223,14 @@ export function FormularioFicha({
         if (errorSubida) throw new Error('No se pudo subir la fotografía.')
 
         await supabase.from('foto_ficha').insert({
-          ficha_id: ficha.id,
+          ficha_id: fichaId,
           ruta_storage: ruta,
           orden: indice,
-          subida_por: autorId,
+          subida_por: autorPorDefecto,
         })
       }
 
-      router.push(`/fichas?creada=${ficha.id}`)
+      router.push('/fichas')
       router.refresh()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Ocurrió un error al guardar.')
@@ -130,22 +242,93 @@ export function FormularioFicha({
     <div className="flex flex-col gap-8">
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">1. La fotografía</h2>
+        {editando && (
+          <p className="text-sm" style={{ color: 'var(--color-texto-suave)' }}>
+            Las que añada aquí se suman a las que ya tenga la ficha.
+          </p>
+        )}
         <CargarFoto fotos={fotos} onCambio={setFotos} />
         <AvisoPersonas />
       </section>
 
-      <section className="flex flex-col gap-3">
+      <section className="flex flex-col gap-4">
         <h2 className="text-lg font-semibold">2. Dónde estaba</h2>
+
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="zona" className="text-sm font-medium">
+            Zona del campus
+          </label>
+          <select
+            id="zona"
+            value={datos.zona_id}
+            onChange={(e) => setDatos((d) => ({ ...d, zona_id: e.target.value }))}
+            className="rounded-[--radius-tarjeta] border border-[color:var(--color-borde)] bg-[color:var(--color-superficie)] px-4 py-3 text-base"
+          >
+            <option value="">Elija una…</option>
+            {zonasDisponibles.map((z) => (
+              <option key={z.id} value={z.id}>
+                {z.nombre}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Solo el responsable amplía la lista: si cualquiera pudiera, en un
+            mes habría «cancha», «Cancha» y «la cancha» conviviendo. */}
+        {esResponsable && (
+          <div
+            className="rounded-[--radius-tarjeta] border p-3"
+            style={{
+              borderColor: 'var(--color-borde)',
+              backgroundColor: 'var(--color-fondo)',
+            }}
+          >
+            <label htmlFor="zona-nueva" className="text-sm font-medium">
+              ¿Falta una zona? Añádala a la lista
+            </label>
+            <p className="mt-0.5 mb-2 text-xs" style={{ color: 'var(--color-texto-suave)' }}>
+              Quedará disponible para todo el equipo. Solo usted puede hacerlo.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <input
+                id="zona-nueva"
+                type="text"
+                value={zonaNueva}
+                onChange={(e) => setZonaNueva(e.target.value)}
+                placeholder="Por ejemplo: Huerta escolar"
+                className="min-w-0 flex-1 rounded-[--radius-tarjeta] border border-[color:var(--color-borde)] bg-[color:var(--color-superficie)] px-3 py-2 text-sm"
+              />
+              <button
+                type="button"
+                onClick={anadirZona}
+                disabled={anadiendoZona || !zonaNueva.trim()}
+                className="rounded-full px-4 py-2 text-sm disabled:opacity-60"
+                style={{
+                  border: '1.5px solid var(--color-marca)',
+                  backgroundColor: 'var(--color-salvia-clara)',
+                  color: 'var(--color-marca)',
+                  fontWeight: 500,
+                }}
+              >
+                {anadiendoZona ? 'Añadiendo…' : 'Añadir'}
+              </button>
+            </div>
+          </div>
+        )}
+
         {imagen ? (
-          <SelectorUbicacion
-            imagen={imagen}
-            punto={datos.punto}
-            onCambio={(punto) => setDatos((d) => ({ ...d, punto }))}
-          />
+          <div className="flex flex-col gap-1.5">
+            <p className="text-sm font-medium">Punto exacto sobre la imagen aérea</p>
+            <SelectorUbicacion
+              imagen={imagen}
+              punto={datos.punto}
+              onCambio={(punto) => setDatos((d) => ({ ...d, punto }))}
+            />
+          </div>
         ) : (
-          <p className="rounded-[--radius-tarjeta] border border-[color:var(--color-ica-sensibles)] bg-orange-50 px-4 py-3 text-sm text-orange-950">
-            Todavía no se ha cargado la imagen aérea del colegio, así que no se puede marcar la
-            ubicación. Avise al docente responsable.
+          <p className="text-sm" style={{ color: 'var(--color-texto-suave)' }}>
+            El punto exacto sobre la imagen aérea del colegio se podrá marcar cuando esa imagen
+            esté lista. La zona ya queda registrada.
           </p>
         )}
       </section>
@@ -226,6 +409,41 @@ export function FormularioFicha({
         </div>
       </section>
 
+      <section className="flex flex-col gap-4">
+        <h2 className="text-lg font-semibold">4. Quién la registró</h2>
+
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="autor" className="text-sm font-medium">
+            Integrante del equipo
+          </label>
+          <select
+            id="autor"
+            value={datos.autor_id}
+            onChange={(e) => setDatos((d) => ({ ...d, autor_id: e.target.value }))}
+            className="rounded-[--radius-tarjeta] border border-[color:var(--color-borde)] bg-[color:var(--color-superficie)] px-4 py-3 text-base"
+          >
+            {integrantes.map((i) => (
+              <option key={i.id} value={i.id}>
+                {i.nombre}
+              </option>
+            ))}
+          </select>
+          <p className="text-sm" style={{ color: 'var(--color-texto-suave)' }}>
+            {/*
+              La lista sale de la base, no de nombres escritos a mano: cuando
+              entre alguien al equipo aparecerá solo, y cuando alguien salga
+              dejará de aparecer sin que haya que tocar nada.
+            */}
+            Viene puesto usted. Cámbielo si la ficha la hizo otra persona del equipo —por ejemplo,
+            si está pasando a limpio una salida de campo de alguien más.
+          </p>
+          <p className="text-xs" style={{ color: 'var(--color-texto-suave)' }}>
+            Este nombre no se muestra en público a menos que su titular lo autorice, ficha por
+            ficha, desde la lista de fichas.
+          </p>
+        </div>
+      </section>
+
       {faltantes.length > 0 && (
         <div className="rounded-[--radius-tarjeta] border border-[color:var(--color-borde)] bg-[color:var(--color-fondo)] p-4">
           <p className="text-sm font-medium">Para poder publicarla después, falta:</p>
@@ -241,7 +459,10 @@ export function FormularioFicha({
       )}
 
       {error && (
-        <p role="alert" className="rounded-[--radius-tarjeta] border border-[color:var(--color-ica-daniña)] bg-red-50 px-4 py-3 text-sm text-red-950">
+        <p
+          role="alert"
+          className="rounded-[--radius-tarjeta] border border-[color:var(--color-ica-daniña)] bg-red-50 px-4 py-3 text-sm text-red-950"
+        >
           {error}
         </p>
       )}
@@ -253,7 +474,7 @@ export function FormularioFicha({
           disabled={guardando || !datos.nombre_comun.trim()}
           className="rounded-full bg-[color:var(--color-marca)] px-5 py-3 font-medium text-white disabled:opacity-60"
         >
-          {guardando ? 'Guardando…' : 'Guardar como borrador'}
+          {guardando ? 'Guardando…' : editando ? 'Guardar los cambios' : 'Guardar como borrador'}
         </button>
         <button
           type="button"

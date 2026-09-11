@@ -59,6 +59,15 @@ export type Medidor = {
   disponible: boolean
 }
 
+/** Zona del campus donde se encuentra biodiversidad (FR-021a, migración 0012). */
+export type ZonaCampus = {
+  id: string
+  nombre: string
+  activo: boolean
+  creada_por: string | null
+  creada_en: string
+}
+
 export type CategoriaBiodiversidad = {
   id: string
   nombre: string
@@ -138,6 +147,8 @@ export type FichaBiodiversidad = {
   descripcion: string
   /** Nulo mientras no exista ortofoto vigente (FR-041a, migración 0009). */
   punto_mapa_id: string | null
+  /** Zona del campus. Complementa al punto del mapa, no lo sustituye. */
+  zona_id: string | null
   estado: EstadoFicha
   /** Una vez true, nunca vuelve a false. Es la clave de FR-038c. */
   aprobada_alguna_vez: boolean
@@ -258,6 +269,7 @@ export type Database = {
       lugar_medicion: Tabla<LugarMedicion>
       medidor: Tabla<Medidor>
       categoria_biodiversidad: Tabla<CategoriaBiodiversidad>
+      zona_campus: Tabla<ZonaCampus>
       jornada: Tabla<Jornada>
       medicion: Tabla<Medicion>
       ficha_biodiversidad: Tabla<FichaBiodiversidad>

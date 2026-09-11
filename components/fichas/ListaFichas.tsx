@@ -191,7 +191,7 @@ function FilaFicha({
 
             {ficha.estado !== 'publicado' && (
               <Link
-                href={`/fichas/${ficha.id}`}
+                href={`/fichas/${ficha.id}/editar`}
                 className="rounded-full px-4 py-2 text-sm no-underline"
                 style={{
                   border: '1px solid var(--color-borde)',
