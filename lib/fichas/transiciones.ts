@@ -71,13 +71,28 @@ export function transicionesDisponibles(ctx: ContextoFicha): TransicionPermitida
   switch (ctx.estado) {
     case 'borrador':
       if (ctx.esAutor || ctx.esResponsable) {
-        if (ctx.aprobadaAlgunaVez) {
-          // Ya fue aprobada antes: puede volver a publicarse sin revisión.
+        /*
+         * Dos caminos hacia «publicado», y la diferencia está en quién mira.
+         *
+         * · La docente responsable publica directamente. Enviarla a
+         *   verificación significaría enviársela a sí misma, y ese paso no
+         *   verifica nada: solo añade dos clics y una bandeja que se llena
+         *   con su propio trabajo. La verificación existe para las fichas
+         *   de los estudiantes.
+         *
+         * · Una ficha ya aprobada alguna vez también sale directa, sea de
+         *   quien sea: la confianza se otorgó una vez y no se retira
+         *   (FR-038c).
+         */
+        if (ctx.esResponsable || ctx.aprobadaAlgunaVez) {
           disponibles.push({
             accion: 'publicar_directo',
             destino: 'publicado',
             etiqueta: 'Publicar',
-            consecuencia: 'La ficha volverá a verse en el mapa público de inmediato.',
+            consecuencia: ctx.aprobadaAlgunaVez
+              ? 'La ficha volverá a verse en el mapa público de inmediato.'
+              : 'La ficha aparecerá en el mapa público de inmediato, sin pasar por verificación. ' +
+                'Usted es quien verifica, así que no hay a quién enviársela.',
             publica: true,
             enfasis: 'principal',
           })

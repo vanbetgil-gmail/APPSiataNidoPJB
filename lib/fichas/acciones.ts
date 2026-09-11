@@ -3,7 +3,11 @@
 import { revalidatePath } from 'next/cache'
 import { crearClienteServidor } from '@/lib/supabase/servidor'
 import { exigirIntegrante, exigirResponsable } from '@/lib/auth/sesion'
-import { validarCompletitud } from './validarCompletitud'
+import {
+  EXIGENCIAS_COMPLETAS,
+  EXIGENCIAS_FASE_INICIAL,
+  validarCompletitud,
+} from './validarCompletitud'
 import type { EstadoFicha } from '@/lib/supabase/tipos'
 
 /**
@@ -58,21 +62,43 @@ async function cambiarEstado(
   return { ok: true }
 }
 
-/** Comprueba completitud antes de dejar avanzar (FR-041). */
+/**
+ * Comprueba completitud antes de dejar avanzar (FR-041, FR-041a).
+ *
+ * ── Por qué consulta la imagen base ──────────────────────────────────────
+ *
+ * Porque las exigencias dependen de si existe la ortofoto, y esta función
+ * no lo sabía: llamaba a `validarCompletitud` con los valores por omisión,
+ * que reclaman fotografía y ubicación siempre.
+ *
+ * El resultado era una contradicción visible. La ficha decía «Ubicación
+ * pendiente: se marcará cuando esté lista la imagen aérea» y, al pulsar
+ * enviar, el servidor respondía «Falta marcar dónde está: toque su
+ * ubicación sobre la imagen del colegio» —la imagen que la propia pantalla
+ * acababa de declarar inexistente—. Ninguna ficha podía avanzar.
+ *
+ * Una regla que la interfaz relaja y el servidor no es peor que una regla
+ * estricta: hace creer que la aplicación está rota.
+ */
 async function exigirFichaCompleta(fichaId: string): Promise<ResultadoAccion> {
   const supabase = await crearClienteServidor()
 
-  const [{ data: ficha }, { count }] = await Promise.all([
+  const [{ data: ficha }, { count }, { data: imagenBase }] = await Promise.all([
     supabase.from('ficha_biodiversidad').select('*').eq('id', fichaId).maybeSingle(),
     supabase
       .from('foto_ficha')
       .select('id', { count: 'exact', head: true })
       .eq('ficha_id', fichaId),
+    supabase.from('imagen_base_mapa').select('version').eq('vigente', true).maybeSingle(),
   ])
 
   if (!ficha) return { ok: false, mensaje: 'No se encontró la ficha.' }
 
-  const faltan = validarCompletitud(ficha, count ?? 0)
+  const faltan = validarCompletitud(
+    ficha,
+    count ?? 0,
+    imagenBase ? EXIGENCIAS_COMPLETAS : EXIGENCIAS_FASE_INICIAL
+  )
   if (faltan.length > 0) {
     return {
       ok: false,
@@ -138,10 +164,34 @@ export async function retirarDeRevision(fichaId: string): Promise<ResultadoAccio
   return cambiarEstado(fichaId, 'borrador')
 }
 
+/**
+ * Publicación sin pasar por verificación — FR-038b, FR-038h.
+ *
+ * La usan dos casos distintos que acaban en lo mismo:
+ *
+ *  · Una ficha ya aprobada alguna vez, que su autor vuelve a publicar. La
+ *    confianza se otorgó una vez y no se retira (FR-038c).
+ *  · Una ficha de la docente responsable. Mandarla a verificación
+ *    significaría enviársela a sí misma.
+ *
+ * Quien no cumpla ninguno de los dos no llega aquí: la política
+ * `integrante_edita_ficha_del_equipo` rechaza poner «publicado» a una ficha
+ * nunca aprobada si quien lo intenta no es responsable. Esta función no lo
+ * comprueba porque no es quien debe hacerlo.
+ *
+ * Si la publica un responsable, queda registrado como quien la aprobó: sin
+ * eso, la ficha aparecería publicada sin que nadie conste como verificador.
+ */
 export async function publicarDirecto(fichaId: string): Promise<ResultadoAccion> {
   const completa = await exigirFichaCompleta(fichaId)
   if (!completa.ok) return completa
-  return cambiarEstado(fichaId, 'publicado')
+
+  const integrante = await exigirIntegrante()
+  const extra = integrante.esResponsable
+    ? { aprobada_por: integrante.id, motivo_rechazo: null }
+    : {}
+
+  return cambiarEstado(fichaId, 'publicado', extra)
 }
 
 /** Despublicar (T106) — FR-044. Conserva todo para el equipo. */
