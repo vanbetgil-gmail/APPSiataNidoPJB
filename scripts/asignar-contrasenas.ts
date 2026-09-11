@@ -30,7 +30,7 @@
  */
 
 import { randomInt } from 'node:crypto'
-import { readFileSync, writeFileSync } from 'node:fs'
+import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { createClient } from '@supabase/supabase-js'
 
 // ---------------------------------------------------------------------------
@@ -194,18 +194,46 @@ async function main() {
 
   // -------------------------------------------------------------------------
   // El archivo para repartir
+  //
+  // ── Se AÑADE al final, nunca se sobrescribe ──────────────────────────────
+  //
+  // Antes se reescribía entero. Restablecer la contraseña de una sola
+  // persona borraba el registro de todas las demás, y lo hacía en silencio:
+  // el archivo seguía ahí, con buen aspecto, conteniendo una sola línea.
+  //
+  // Las contraseñas anteriores siguen funcionando —viven cifradas en
+  // Supabase— pero el papel donde estaban anotadas desaparecía. Quien no
+  // hubiera alcanzado a repartirlas se quedaba sin poder consultarlas, y sin
+  // más salida que volver a generarlas para todo el mundo.
+  //
+  // Añadir al final cuesta que el archivo crezca. Perder un registro que no
+  // se puede reconstruir cuesta mucho más.
   // -------------------------------------------------------------------------
   const RUTA = 'datos-colegio/contrasenas-iniciales.txt'
   const ancho = Math.max(...asignadas.map((a) => a.nombre.length))
+  const yaExistia = existsSync(RUTA)
+
+  const cabecera = yaExistia
+    ? [
+        '',
+        '',
+        ''.padEnd(ancho + 62, '═'),
+        `Restablecidas el ${new Date().toLocaleString('es-CO')}`,
+        'Estas sustituyen a cualquier contraseña anterior de las mismas personas.',
+        ''.padEnd(ancho + 62, '═'),
+      ]
+    : [
+        'SIATA PJB — contraseñas iniciales',
+        `Generadas el ${new Date().toLocaleString('es-CO')}`,
+        '',
+        'Entregue a cada persona SOLO la suya, y pídale que la cambie el primer',
+        'día desde el menú de su cuenta. Borre este archivo cuando termine.',
+        '',
+        ''.padEnd(ancho + 62, '─'),
+      ]
 
   const contenido = [
-    'SIATA PJB — contraseñas iniciales',
-    `Generadas el ${new Date().toLocaleString('es-CO')}`,
-    '',
-    'Entregue a cada persona SOLO la suya, y pídale que la cambie el primer',
-    'día desde el menú de su cuenta. Borre este archivo cuando termine.',
-    '',
-    ''.padEnd(ancho + 62, '─'),
+    ...cabecera,
     // El rol va ANTES de la contraseña, no después: si fuera al final, la
     // última palabra de la fila del responsable sería «(responsable)» y
     // cualquiera que lea de derecha a izquierda —una persona con prisa o un
@@ -215,12 +243,18 @@ async function main() {
         `${a.nombre.padEnd(ancho)}  ${a.rol === 'responsable' ? '(responsable)' : '             '}  ` +
         `${a.correo.padEnd(40)}  ${a.contrasena}`
     ),
-    ''.padEnd(ancho + 62, '─'),
   ].join('\n')
 
-  writeFileSync(RUTA, contenido + '\n', 'utf8')
+  if (yaExistia) appendFileSync(RUTA, contenido + '\n', 'utf8')
+  else writeFileSync(RUTA, contenido + '\n', 'utf8')
 
-  console.log(`\n✓ ${asignadas.length} contraseñas escritas en ${RUTA}`)
+  console.log(
+    `\n✓ ${asignadas.length} contraseñas ${yaExistia ? 'AÑADIDAS al final de' : 'escritas en'} ${RUTA}`
+  )
+  if (yaExistia) {
+    console.log('  Las anteriores siguen en el archivo, más arriba. Si alguien')
+    console.log('  aparece dos veces, la buena es la de abajo.')
+  }
   console.log('\n  ⚠️  Ese archivo abre todas esas cuentas. No lo suba a ningún sitio,')
   console.log('      no lo envíe por WhatsApp y bórrelo cuando termine de repartir.')
   console.log('      Git lo ignora, así que no llegará al repositorio.\n')
