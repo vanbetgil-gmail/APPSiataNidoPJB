@@ -1,5 +1,5 @@
 /**
- * NIDO PJB — asigna contraseñas iniciales al equipo.
+ * SIATA PJB — asigna contraseñas iniciales al equipo.
  *
  * Se ejecuta con:
  *   pnpm asignar-contrasenas
@@ -94,10 +94,34 @@ function generarContrasena(): string {
 }
 
 // ---------------------------------------------------------------------------
-async function main() {
-  const soloEste = process.argv[2]?.toLowerCase()
+/**
+ * Los correos que se pasaron por la línea de órdenes.
+ *
+ * ── Por qué se separa también por comas ──────────────────────────────────
+ *
+ * Porque en PowerShell una lista se escribe con comas:
+ *
+ *     pnpm asignar-contrasenas uno@colegio.edu.co, otro@colegio.edu.co
+ *
+ * y PowerShell entrega eso como UN solo argumento con los dos correos
+ * pegados. La versión anterior leía `argv[2]` a secas, lo tomaba entero
+ * como una sola dirección y respondía que no existía nadie con ese correo,
+ * mostrando los dos juntos en el mensaje. Esa era la única pista.
+ *
+ * Aceptar las dos formas cuesta una línea y ahorra ese desconcierto.
+ */
+function correosPedidos(): string[] {
+  return process.argv
+    .slice(2)
+    .flatMap((a) => a.split(/[,;\s]+/))
+    .map((c) => c.trim().toLowerCase())
+    .filter(Boolean)
+}
 
-  console.log('\nNIDO PJB — contraseñas iniciales\n')
+async function main() {
+  const pedidos = correosPedidos()
+
+  console.log('\nSIATA PJB — contraseñas iniciales\n')
 
   const { data: equipo, error } = await supabase
     .from('integrante')
@@ -107,22 +131,39 @@ async function main() {
 
   if (error) {
     console.error('✖ No se pudo leer el equipo:', error.message, '\n')
-    process.exit(1)
+    process.exitCode = 1
+    return
   }
 
-  const objetivo = soloEste ? (equipo ?? []).filter((p) => p.correo === soloEste) : (equipo ?? [])
+  const todos = equipo ?? []
+  const objetivo = pedidos.length > 0 ? todos.filter((p) => pedidos.includes(p.correo)) : todos
+
+  // Se avisa de CADA correo que no se encontró, por separado. Decir «no hay
+  // nadie» cuando se pidieron cinco no dice cuál de los cinco falla.
+  const noEncontrados = pedidos.filter((c) => !todos.some((p) => p.correo === c))
+  if (noEncontrados.length > 0) {
+    console.error('✖ Estos correos no corresponden a ningún integrante activo:\n')
+    for (const c of noEncontrados) console.error(`    ${c}`)
+    console.error('\n  Añádalos a datos-colegio/ y ejecute `pnpm cargar-equipo`.')
+    console.error('\n  Integrantes activos ahora mismo:\n')
+    for (const p of todos) console.error(`    ${p.correo}`)
+    console.error('')
+    process.exitCode = 1
+    return
+  }
 
   if (objetivo.length === 0) {
-    console.error(
-      soloEste
-        ? `✖ No hay ningún integrante activo con el correo «${soloEste}».\n`
-        : '✖ No hay integrantes activos. Ejecute antes `pnpm cargar-equipo`.\n'
-    )
-    process.exit(1)
+    console.error('✖ No hay integrantes activos. Ejecute antes `pnpm cargar-equipo`.\n')
+    process.exitCode = 1
+    return
   }
 
-  if (soloEste) {
-    console.log(`Restableciendo solo la contraseña de ${soloEste}.\n`)
+  if (pedidos.length > 0) {
+    console.log(
+      objetivo.length === 1
+        ? `Restableciendo solo la contraseña de ${objetivo[0].correo}.\n`
+        : `Restableciendo la contraseña de ${objetivo.length} personas.\n`
+    )
   } else {
     console.log(`Se generará una contraseña nueva para ${objetivo.length} personas.`)
     console.log('Las contraseñas anteriores dejarán de servir.\n')
@@ -147,7 +188,8 @@ async function main() {
 
   if (asignadas.length === 0) {
     console.log('\n✖ No se asignó ninguna contraseña.\n')
-    process.exit(1)
+    process.exitCode = 1
+    return
   }
 
   // -------------------------------------------------------------------------
@@ -157,7 +199,7 @@ async function main() {
   const ancho = Math.max(...asignadas.map((a) => a.nombre.length))
 
   const contenido = [
-    'NIDO PJB — contraseñas iniciales',
+    'SIATA PJB — contraseñas iniciales',
     `Generadas el ${new Date().toLocaleString('es-CO')}`,
     '',
     'Entregue a cada persona SOLO la suya, y pídale que la cambie el primer',
@@ -186,7 +228,19 @@ async function main() {
   console.log('  y la cambia desde /cuenta.\n')
 }
 
+/*
+ * `process.exitCode` y no `process.exit()`.
+ *
+ * En Windows, salir de golpe con el cliente de Supabase todavía abierto
+ * imprime «Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)» detrás
+ * del mensaje de error: un aviso del motor que no dice nada del problema
+ * real y hace parecer que se rompió algo más grave. Marcando el código de
+ * salida, Node termina cuando no le queda trabajo y la salida queda limpia.
+ *
+ * Los `process.exit()` de arriba se conservan: ocurren ANTES de abrir el
+ * cliente, así que no hay nada pendiente que cerrar.
+ */
 main().catch((e) => {
   console.error('\n✖ Error inesperado:', e instanceof Error ? e.message : e, '\n')
-  process.exit(1)
+  process.exitCode = 1
 })
