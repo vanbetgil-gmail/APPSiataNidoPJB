@@ -215,21 +215,48 @@ export function FormularioFicha({
         fichaId = creada.id
       }
 
-      // Las fotos, ya redimensionadas en el navegador.
+      /*
+       * Las fotos, ya redimensionadas en el navegador.
+       *
+       * ── Los DOS pasos y por qué hay que mirar los dos ────────────────
+       *
+       * Subir la imagen y registrarla son operaciones separadas, contra
+       * sistemas distintos: el almacenamiento y la base de datos. Aquí se
+       * comprobaba solo la primera. La segunda se rechazaba por falta de
+       * política de RLS y el rechazo no lanza excepción en supabase-js
+       * —devuelve un objeto con `error`—, así que ignorarlo lo convertía
+       * en silencio.
+       *
+       * El resultado: el archivo en el servidor, sin fila que lo
+       * relacionara con nada, y la ficha diciendo «Sin fotografía». El
+       * fallo de permisos se corrige en la migración 0014; el silencio,
+       * aquí.
+       */
       for (const [indice, foto] of fotos.entries()) {
         const ruta = `${fichaId}/${indice}-${Date.now()}.jpg`
+
         const { error: errorSubida } = await supabase.storage
           .from('fotos-fichas')
           .upload(ruta, foto.archivo, { contentType: 'image/jpeg', upsert: false })
 
-        if (errorSubida) throw new Error('No se pudo subir la fotografía.')
+        if (errorSubida) throw new Error(`No se pudo subir la fotografía: ${errorSubida.message}`)
 
-        await supabase.from('foto_ficha').insert({
+        const { error: errorRegistro } = await supabase.from('foto_ficha').insert({
           ficha_id: fichaId,
           ruta_storage: ruta,
           orden: indice,
           subida_por: autorPorDefecto,
         })
+
+        if (errorRegistro) {
+          // El archivo ya está arriba: si no se puede registrar, se retira.
+          // Dejarlo produciría exactamente el problema que acabamos de
+          // corregir, imágenes huérfanas que nadie sabe de quién son.
+          await supabase.storage.from('fotos-fichas').remove([ruta])
+          throw new Error(
+            `La imagen subió pero no se pudo asociar a la ficha: ${errorRegistro.message}`
+          )
+        }
       }
 
       router.push('/fichas')
