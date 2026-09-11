@@ -62,7 +62,7 @@ export async function GET() {
     categoria: nombreCategoria.get(f.categoria_id) ?? null,
     estado: f.estado,
     descripcion: f.descripcion,
-    autor: nombrePersona.get(f.autor_id) ?? null,
+    autor: f.autor_id ? (nombrePersona.get(f.autor_id) ?? null) : null,
     tiene_ubicacion: Boolean(f.punto_mapa_id),
     numero_de_fotos: fotosPorFicha.get(f.id) ?? 0,
     ediciones_usadas: f.ediciones_usadas ?? 0,

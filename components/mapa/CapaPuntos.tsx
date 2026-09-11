@@ -65,6 +65,14 @@ export function CapaPuntos({
       grupoRef.current = grupo
 
       for (const ficha of fichas) {
+        /*
+         * Una ficha publicada puede no tener punto marcado: la ortofoto
+         * llegó después que las fichas (migración 0013). Se omite del mapa
+         * —no hay dónde ponerla— pero sigue estando en el catálogo, que es
+         * donde se la encuentra por nombre.
+         */
+        if (ficha.x_relativa === null || ficha.y_relativa === null) continue
+
         const tieneInmersiva = puntosConVistaInmersiva?.has(ficha.id) ?? false
 
         const marcador = L.circleMarker(relativaALeaflet({ x: ficha.x_relativa, y: ficha.y_relativa }, imagen), {

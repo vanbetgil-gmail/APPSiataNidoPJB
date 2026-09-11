@@ -48,7 +48,9 @@ export default async function PaginaRevision() {
     const { data: personas } = await supabase
       .from('integrante')
       .select('id, nombre')
-      .in('id', [...new Set(pendientes.map((f) => f.autor_id))])
+      // Una ficha puede no tener autor registrado (FR-051c): se filtran
+      // los nulos antes de consultar, o la consulta devuelve vacío entera.
+      .in('id', [...new Set(pendientes.map((f) => f.autor_id).filter((id): id is string => Boolean(id)))])
     for (const p of personas ?? []) autores.set(p.id, p.nombre)
   }
 
@@ -113,7 +115,11 @@ export default async function PaginaRevision() {
                         {ficha.nombre_cientifico}
                       </p>
                       <p className="mt-1 text-sm text-[color:var(--color-texto-suave)]">
-                        Por {autores.get(ficha.autor_id) ?? 'un integrante'} ·{' '}
+                        Por{' '}
+                        {ficha.autor_id
+                          ? (autores.get(ficha.autor_id) ?? 'un integrante')
+                          : 'el equipo, sin autor registrado'}{' '}
+                        ·{' '}
                         <span className={olvidada ? 'font-medium text-orange-700' : ''}>
                           {dias === 0
                             ? 'enviada hoy'

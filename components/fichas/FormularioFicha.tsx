@@ -88,7 +88,7 @@ export function FormularioFicha({
     categoria_id: ficha?.categoria_id ?? '',
     descripcion: ficha?.descripcion ?? '',
     zona_id: ficha?.zona_id ?? '',
-    autor_id: ficha?.autor_id ?? autorPorDefecto,
+    autor_id: ficha ? (ficha.autor_id ?? '') : autorPorDefecto,
     punto: null,
   })
 
@@ -185,7 +185,9 @@ export function FormularioFicha({
         descripcion: datos.descripcion.trim(),
         zona_id: datos.zona_id || null,
         punto_mapa_id: puntoId,
-        autor_id: datos.autor_id,
+        // Cadena vacía = «Sin registrar». En la base es un nulo, no un
+        // texto vacío: no hay autor, no hay un autor que se llama «».
+        autor_id: datos.autor_id || null,
       }
 
       let fichaId: string
@@ -422,12 +424,21 @@ export function FormularioFicha({
             onChange={(e) => setDatos((d) => ({ ...d, autor_id: e.target.value }))}
             className="rounded-[--radius-tarjeta] border border-[color:var(--color-borde)] bg-[color:var(--color-superficie)] px-4 py-3 text-base"
           >
+            {/*
+              «Sin registrar» va PRIMERO y no al final de la lista.
+              
+              Es la opción que protege, y las opciones que protegen no deben
+              quedar escondidas detrás de once nombres: quien dude entre poner
+              un nombre y no ponerlo tiene que encontrarla sin buscar.
+            */}
+            <option value="">Sin registrar (ficha anónima)</option>
             {integrantes.map((i) => (
               <option key={i.id} value={i.id}>
                 {i.nombre}
               </option>
             ))}
           </select>
+
           <p className="text-sm" style={{ color: 'var(--color-texto-suave)' }}>
             {/*
               La lista sale de la base, no de nombres escritos a mano: cuando
@@ -437,10 +448,26 @@ export function FormularioFicha({
             Viene puesto usted. Cámbielo si la ficha la hizo otra persona del equipo —por ejemplo,
             si está pasando a limpio una salida de campo de alguien más.
           </p>
-          <p className="text-xs" style={{ color: 'var(--color-texto-suave)' }}>
-            Este nombre no se muestra en público a menos que su titular lo autorice, ficha por
-            ficha, desde la lista de fichas.
-          </p>
+
+          {datos.autor_id ? (
+            <p className="text-xs" style={{ color: 'var(--color-texto-suave)' }}>
+              Este nombre no se muestra en público a menos que su titular lo autorice, ficha por
+              ficha, desde la lista de fichas.
+            </p>
+          ) : (
+            <p
+              className="rounded-[--radius-tarjeta] border px-3 py-2 text-xs leading-relaxed"
+              style={{
+                borderColor: 'var(--color-salvia)',
+                backgroundColor: 'var(--color-salvia-clara)',
+                color: 'var(--color-texto)',
+              }}
+            >
+              La ficha quedará <strong>sin autor</strong>, ni siquiera dentro del equipo. Es lo
+              apropiado cuando el trabajo fue colectivo y señalar a una persona sería tan arbitrario
+              como señalar a otra.
+            </p>
+          )}
         </div>
       </section>
 

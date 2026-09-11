@@ -35,6 +35,8 @@ export default async function PaginaAutorizaciones() {
   const integrantes = (personas ?? []) as Integrante[]
   const porAutor = new Map<string, number>()
   for (const f of fichasVisibles ?? []) {
+    // Una ficha sin autor no cuenta para nadie: no hay nombre que autorizar.
+    if (!f.autor_id) continue
     porAutor.set(f.autor_id, (porAutor.get(f.autor_id) ?? 0) + 1)
   }
 

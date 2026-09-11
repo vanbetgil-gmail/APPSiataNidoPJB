@@ -53,6 +53,9 @@ export function MapaExplorador({
   const centrarEn = useCallback(
     (ficha: FichaPublica) => {
       if (!mapa) return
+      // Sin punto marcado no hay a dónde centrar. No es un error: la ficha
+      // existe y se ve en el catálogo, solo que todavía no en el mapa.
+      if (ficha.x_relativa === null || ficha.y_relativa === null) return
       mapa.setView(
         relativaALeaflet({ x: ficha.x_relativa, y: ficha.y_relativa }, imagen),
         Math.min(3, imagen.zoom_maximo)

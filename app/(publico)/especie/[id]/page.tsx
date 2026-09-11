@@ -109,9 +109,32 @@ export default async function PaginaEspecie({ params }: { params: Promise<{ id: 
         <p className="mt-1 text-lg italic text-[color:var(--color-texto-suave)]">
           {ficha.nombre_cientifico}
         </p>
-        <span className="mt-3 inline-block rounded-full bg-[color:var(--color-marca-suave)] px-3 py-1 text-sm text-[color:var(--color-marca)]">
-          {ficha.categoria}
-        </span>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span className="inline-block rounded-full bg-[color:var(--color-marca-suave)] px-3 py-1 text-sm text-[color:var(--color-marca)]">
+            {ficha.categoria}
+          </span>
+
+          {/*
+            La zona del campus (migración 0012).
+
+            Es la respuesta a «¿dónde puedo ir a verlo?», que es lo primero
+            que pregunta quien lee una ficha estando en el colegio. Y hoy es
+            la ÚNICA respuesta posible: el mapa todavía no tiene ortofoto, así
+            que sin esta línea la ficha no dice dónde está el árbol.
+          */}
+          {ficha.zona && (
+            <span
+              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm"
+              style={{
+                backgroundColor: 'var(--color-salvia-clara)',
+                color: 'var(--color-texto)',
+              }}
+            >
+              <span aria-hidden>◍</span>
+              {ficha.zona}
+            </span>
+          )}
+        </div>
       </header>
 
       {fotos && fotos.length > 0 && (

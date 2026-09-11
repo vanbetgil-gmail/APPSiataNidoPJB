@@ -59,7 +59,7 @@ export default async function PaginaClasificacionTaxonomica() {
   const entradas: FichaConContexto[] = fichas.map((ficha) => ({
     ficha,
     categoria: nombreCategoria.get(ficha.categoria_id) ?? null,
-    autor: nombreAutor.get(ficha.autor_id) ?? null,
+    autor: ficha.autor_id ? (nombreAutor.get(ficha.autor_id) ?? null) : null,
     numeroDeFotos: fotosPorFicha.get(ficha.id) ?? 0,
     esAutor: ficha.autor_id === integrante.id,
   }))

@@ -155,7 +155,8 @@ export type FichaBiodiversidad = {
   motivo_rechazo: string | null
   /** Desactivado por omisión (FR-051b): proteger por defecto. */
   mostrar_autor: boolean
-  autor_id: string
+  /** Nulo cuando el equipo eligió no atribuir la ficha (FR-051c). */
+  autor_id: string | null
   aprobada_por: string | null
   aprobada_en: string | null
   creada_en: string
@@ -227,8 +228,17 @@ export type FichaPublica = {
   nombre_cientifico: string
   descripcion: string
   categoria: string
-  x_relativa: number
-  y_relativa: number
+  /** Zona del campus. Nula si la ficha no la registró. */
+  zona: string | null
+  /*
+   * Nulas mientras la ficha no tenga punto marcado sobre la ortofoto.
+   *
+   * La vista usa `left join`: una ficha publicada sale al catálogo aunque
+   * no se pueda dibujar en el mapa. Quien las pinte DEBE descartar las
+   * que vengan sin coordenadas (migración 0013).
+   */
+  x_relativa: number | null
+  y_relativa: number | null
   autor_visible: string | null
   creada_en: string
 }
