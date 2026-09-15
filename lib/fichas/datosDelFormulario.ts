@@ -22,7 +22,14 @@ export async function cargarDatosDelFormulario(): Promise<DatosDelFormulario> {
   const [categorias, zonas, integrantes, imagen] = await Promise.all([
     supabase.from('categoria_biodiversidad').select('*').order('nombre'),
     supabase.from('zona_campus').select('*').eq('activo', true).order('nombre'),
-    supabase.from('integrante').select('id, nombre').eq('activo', true),
+    /*
+     * De `integrante_equipo`, no de `integrante` (migracion 0016).
+     *
+     * RLS solo deja a un estudiante leer su propia fila de `integrante`,
+     * asi que esta lista le llegaba con un unico nombre —el suyo— sin
+     * error ni aviso. La vista expone solo nombres, nunca correos.
+     */
+    supabase.from('integrante_equipo').select('id, nombre').eq('activo', true),
     supabase
       .from('imagen_base_mapa')
       .select('ruta_teselas, zoom_maximo, ancho_px, alto_px')

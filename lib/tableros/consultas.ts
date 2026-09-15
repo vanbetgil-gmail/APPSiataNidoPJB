@@ -58,7 +58,9 @@ export async function cargarDatosTablero(): Promise<DatosTablero> {
       supabase.from('jornada').select('*'),
       supabase.from('lugar_medicion').select('id, nombre'),
       supabase.from('medidor').select('id, numero_serie'),
-      supabase.from('integrante').select('id, nombre'),
+      // Vista interna: sin ella, un estudiante veria «(sin identificar)»
+      // en el trabajo de todos sus companeros (migracion 0016).
+      supabase.from('integrante_equipo').select('id, nombre'),
     ])
 
   const porJornada = new Map((jornadas ?? []).map((j) => [j.id, j]))

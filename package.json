@@ -23,7 +23,8 @@
     "revisar": "tsx scripts/revisar-antes-de-subir.ts",
     "cargar-equipo": "tsx scripts/cargar-equipo.ts",
     "cargar-taxonomia": "tsx scripts/cargar-taxonomia.ts",
-    "probar-smtp": "tsx scripts/probar-smtp.ts"
+    "probar-smtp": "tsx scripts/probar-smtp.ts",
+    "probar-aviso": "tsx scripts/probar-aviso.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.5",

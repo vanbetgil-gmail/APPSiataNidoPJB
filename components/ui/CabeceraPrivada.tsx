@@ -32,11 +32,29 @@ export function CabeceraPrivada({
         <nav className="desplazable-x flex items-center gap-1 text-sm">
           <Enlace href="/jornadas">Mediciones</Enlace>
           <Enlace href="/tableros">Tableros</Enlace>
+          {/*
+            ── La insignia va donde esta el trabajo de cada quien ──────────
+
+            Para un estudiante, el numero son SUS fichas esperando respuesta,
+            y vive en «Mis fichas», que es donde las tiene.
+
+            Para la docente son las fichas del equipo que le toca verificar,
+            y viven en «Revision», que es la bandeja. Ponerla en los dos
+            sitios mostraba el mismo numero dos veces en la misma barra, y
+            el de «Mis fichas» sugeria que eran fichas suyas.
+          */}
           <Enlace href="/fichas">
             Mis fichas
-            <InsigniaVerificacion cantidad={pendientesRevision} esResponsable={esResponsable} />
+            {!esResponsable && (
+              <InsigniaVerificacion cantidad={pendientesRevision} esResponsable={false} />
+            )}
           </Enlace>
-          {esResponsable && <Enlace href="/revision">Revisión</Enlace>}
+          {esResponsable && (
+            <Enlace href="/revision">
+              Revisión
+              <InsigniaVerificacion cantidad={pendientesRevision} esResponsable />
+            </Enlace>
+          )}
           {esResponsable && <Enlace href="/admin/integrantes">Equipo</Enlace>}
         </nav>
 

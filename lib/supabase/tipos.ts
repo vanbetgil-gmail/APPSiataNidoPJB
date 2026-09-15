@@ -270,6 +270,13 @@ export type IntegrantePublico = {
  * Permite decir «y nueve estudiantes mas» en la pagina publica sin publicar
  * datos de quien no lo ha autorizado. Un recuento no identifica a nadie.
  */
+export type IntegranteEquipo = {
+  id: string
+  nombre: string
+  rol: RolIntegrante
+  activo: boolean
+}
+
 export type EquipoResumen = {
   estudiantes_totales: number
   estudiantes_visibles: number
@@ -317,6 +324,7 @@ export type Database = {
       punto_destacado_publico: { Row: PuntoDestacadoPublico; Relationships: [] }
       integrante_publico: { Row: IntegrantePublico; Relationships: [] }
       equipo_resumen: { Row: EquipoResumen; Relationships: [] }
+      integrante_equipo: { Row: IntegranteEquipo; Relationships: [] }
     }
     Functions: {
       es_integrante_activo: { Args: Record<string, never>; Returns: boolean }

@@ -3,7 +3,10 @@ import { crearClienteServidor } from '@/lib/supabase/servidor'
 import { exigirResponsable } from '@/lib/auth/sesion'
 import { AccionesFicha } from '@/components/fichas/AccionesFicha'
 import { Tarjeta } from '@/components/ui/Tarjeta'
+import { Aviso } from '@/components/ui/Aviso'
 import { transicionesDisponibles } from '@/lib/fichas/transiciones'
+import { destinatariosDeAvisos } from '@/lib/fichas/avisos'
+import { correoConfigurado } from '@/lib/correo/enviar'
 import type { FichaBiodiversidad } from '@/lib/supabase/tipos'
 
 export const metadata = { title: 'Fichas por revisar' }
@@ -67,6 +70,8 @@ export default async function PaginaRevision() {
   }
 
   const base = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/fotos-fichas`
+  const avisos = destinatariosDeAvisos()
+  const hayCorreo = correoConfigurado()
 
   return (
     <div className="mx-auto w-full max-w-4xl px-4 py-8">
@@ -75,6 +80,36 @@ export default async function PaginaRevision() {
         Solo la <strong>primera</strong> publicación de cada ficha pasa por aquí. Una vez aprobada,
         su autor podrá editarla y los cambios saldrán directamente.
       </p>
+
+      {/*
+        ── Por qué esto se dice en pantalla ─────────────────────────────
+
+        Porque un aviso por correo que no está configurado falla de la peor
+        manera posible: en silencio. Nadie recibe nada, todo parece normal,
+        y las fichas se acumulan aquí esperando a que alguien entre por su
+        cuenta a mirar.
+
+        Decirlo aquí, en la bandeja, es decirlo donde se notaría la falta.
+      */}
+      {avisos.length === 0 ? (
+        <div className="mt-4">
+          <Aviso tono="precaucion">
+            <strong>Nadie recibe aviso por correo cuando llega una ficha.</strong> Para activarlo,
+            hay que poner la dirección en la variable <code>CORREO_AVISOS_REVISION</code> de
+            Vercel. Mientras tanto, esta bandeja solo se ve entrando aquí.
+          </Aviso>
+        </div>
+      ) : (
+        !hayCorreo && (
+          <div className="mt-4">
+            <Aviso tono="precaucion">
+              <strong>Hay destinatario pero no servidor de correo.</strong> Faltan las variables{' '}
+              <code>SMTP_HOST</code>, <code>SMTP_USUARIO</code> y <code>SMTP_CONTRASENA</code>. Los
+              avisos no están saliendo.
+            </Aviso>
+          </div>
+        )
+      )}
 
       {pendientes.length === 0 ? (
         <Tarjeta className="mt-8 text-center">

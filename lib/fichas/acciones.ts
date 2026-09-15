@@ -8,6 +8,7 @@ import {
   EXIGENCIAS_FASE_INICIAL,
   validarCompletitud,
 } from './validarCompletitud'
+import { avisarFichaEnRevision } from './avisos'
 import type { EstadoFicha } from '@/lib/supabase/tipos'
 
 /**
@@ -114,7 +115,27 @@ async function exigirFichaCompleta(fichaId: string): Promise<ResultadoAccion> {
 export async function enviarARevision(fichaId: string): Promise<ResultadoAccion> {
   const completa = await exigirFichaCompleta(fichaId)
   if (!completa.ok) return completa
-  return cambiarEstado(fichaId, 'en_revision', { motivo_rechazo: null })
+
+  const resultado = await cambiarEstado(fichaId, 'en_revision', { motivo_rechazo: null })
+  if (!resultado.ok) return resultado
+
+  /*
+   * El aviso va DESPUES del cambio de estado, y se espera a que termine.
+   *
+   * Despues, porque avisar de una ficha que no llego a cambiar de estado
+   * seria mandar a alguien a revisar algo que no esta ahi.
+   *
+   * Y se espera —en vez de dispararlo y seguir— porque en un servidor sin
+   * estado la funcion puede terminar en cuanto se devuelve la respuesta, y
+   * con ella la conexion SMTP a medio abrir. Un aviso que se pierde la
+   * mitad de las veces es peor que no tenerlo: nadie sabe si llegara.
+   *
+   * `avisarFichaEnRevision` no lanza nunca, asi que esto no puede tumbar el
+   * envio de la ficha.
+   */
+  await avisarFichaEnRevision(fichaId)
+
+  return resultado
 }
 
 /**
