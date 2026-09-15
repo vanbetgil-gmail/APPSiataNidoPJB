@@ -18,6 +18,7 @@ interface Miembro {
   grado: string | null
   foto_ruta: string | null
   semblanza: string | null
+  orden_equipo: number | null
   foto: string | null
 }
 
@@ -44,8 +45,10 @@ async function cargarEquipo(): Promise<Miembro[]> {
   // La vista ya filtra por autorización: aquí no se repite esa regla.
   const { data } = await supabase
     .from('integrante_publico')
-    .select('id, nombre, rol, grado, foto_ruta, semblanza')
-    .order('rol')
+    .select('id, nombre, rol, grado, foto_ruta, semblanza, orden_equipo')
+    // `nullsFirst: false` es lo que hace util la columna: quien no tiene
+    // puesto asignado queda al final, no al principio empujando a quien si.
+    .order('orden_equipo', { ascending: true, nullsFirst: false })
     .order('nombre')
 
   const miembros = (data ?? []) as Omit<Miembro, 'foto'>[]
@@ -69,6 +72,26 @@ async function cargarEquipo(): Promise<Miembro[]> {
         .createSignedUrl(m.foto_ruta, 3600)
       return { ...m, foto: firmada?.signedUrl ?? null }
     })
+  )
+}
+
+/**
+ * Cuántos estudiantes hay y cuántos pueden verse (migración 0015).
+ *
+ * Devuelve dos números y ningún nombre. Sirve para reconocer al equipo
+ * completo sin publicar nada de quien no lo ha autorizado.
+ */
+async function cargarResumen(): Promise<{
+  estudiantes_totales: number
+  estudiantes_visibles: number
+}> {
+  const supabase = crearClientePublico()
+  const { data } = await supabase.from('equipo_resumen').select('*').maybeSingle()
+  return (
+    (data as { estudiantes_totales: number; estudiantes_visibles: number } | null) ?? {
+      estudiantes_totales: 0,
+      estudiantes_visibles: 0,
+    }
   )
 }
 
@@ -102,12 +125,23 @@ function Retrato({ miembro }: { miembro: Miembro }) {
           </div>
         )}
 
+        {/*
+          El cargo va en la insignia, no bajo el nombre.
+
+          «Docente acompañante» describe a cualquiera de ellos y no dice nada
+          de ninguno. Quien lidera el proyecto y quien sostiene la parte
+          técnica hacen cosas distintas, y la página del equipo existe
+          precisamente para decir quién hace qué.
+
+          Se conserva el texto genérico como respaldo: una insignia vacía
+          sería peor que una insignia imprecisa.
+        */}
         {esDocente && (
           <span
-            className="absolute left-3 top-3 rounded-full px-2.5 py-1 text-[0.7rem] font-medium"
+            className="absolute left-3 top-3 max-w-[calc(100%-1.5rem)] rounded-full px-2.5 py-1 text-[0.7rem] font-medium leading-tight"
             style={{ backgroundColor: 'var(--color-crema)', color: 'var(--color-texto)' }}
           >
-            Docente acompañante
+            {miembro.grado ?? 'Docente acompañante'}
           </span>
         )}
       </div>
@@ -116,7 +150,9 @@ function Retrato({ miembro }: { miembro: Miembro }) {
         <h3 className="text-lg leading-tight" style={{ fontFamily: 'var(--font-display)' }}>
           {miembro.nombre}
         </h3>
-        {miembro.grado && (
+        {/* Para un docente ya está arriba, en la insignia. Repetirlo debajo
+            del nombre lo diría dos veces en una tarjeta de cuatro renglones. */}
+        {!esDocente && miembro.grado && (
           <p className="mt-0.5 text-sm" style={{ color: 'var(--color-marca)' }}>
             {miembro.grado}
           </p>
@@ -135,9 +171,10 @@ function Retrato({ miembro }: { miembro: Miembro }) {
 }
 
 export default async function PaginaEquipo() {
-  const equipo = await cargarEquipo()
+  const [equipo, resumen] = await Promise.all([cargarEquipo(), cargarResumen()])
   const docentes = equipo.filter((m) => m.rol === 'responsable')
   const estudiantes = equipo.filter((m) => m.rol !== 'responsable')
+  const sinAutorizacion = resumen.estudiantes_totales - resumen.estudiantes_visibles
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-10">
@@ -175,7 +212,19 @@ export default async function PaginaEquipo() {
             </section>
           )}
 
-          {estudiantes.length > 0 && (
+          {/*
+            ── El recuento dice el equipo REAL, no el publicable ──────────
+
+            Antes esta sección desaparecía entera cuando ningún estudiante
+            tenía autorización registrada. La página quedaba mostrando cuatro
+            docentes y nada más, y quien la abría concluía que el proyecto lo
+            hacen los adultos —exactamente lo contrario de la verdad—.
+
+            Ahora el número del encabezado es el total y, debajo, se explica
+            por qué faltan nombres. Reconocer que existen no publica nada de
+            ellos: un recuento no identifica a nadie.
+          */}
+          {resumen.estudiantes_totales > 0 && (
             <section className="mt-14">
               <h2 className="mb-5 text-2xl">
                 Estudiantes
@@ -183,14 +232,44 @@ export default async function PaginaEquipo() {
                   className="ml-3 text-base font-normal"
                   style={{ color: 'var(--color-texto-suave)' }}
                 >
-                  {estudiantes.length}
+                  {resumen.estudiantes_totales}
                 </span>
               </h2>
-              <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-                {estudiantes.map((m) => (
-                  <Retrato key={m.id} miembro={m} />
-                ))}
-              </ul>
+
+              {estudiantes.length > 0 && (
+                <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+                  {estudiantes.map((m) => (
+                    <Retrato key={m.id} miembro={m} />
+                  ))}
+                </ul>
+              )}
+
+              {sinAutorizacion > 0 && (
+                <div
+                  className={`${estudiantes.length > 0 ? 'mt-4' : ''} rounded-[--radius-suave] border border-dashed p-6`}
+                  style={{ borderColor: 'var(--color-salvia)' }}
+                >
+                  <p className="leading-relaxed">
+                    <strong>
+                      {sinAutorizacion === 1
+                        ? 'Un estudiante más sostiene'
+                        : `${sinAutorizacion} estudiantes más sostienen`}{' '}
+                      este proyecto.
+                    </strong>{' '}
+                    {sinAutorizacion === 1 ? 'Su nombre aparecerá' : 'Sus nombres aparecerán'} aquí
+                    cuando su acudiente lo autorice por escrito. Casi todos son menores de edad, y
+                    publicar el nombre o la cara de un menor sin ese permiso no es algo que este
+                    proyecto vaya a hacer.
+                  </p>
+                  <p
+                    className="mt-3 text-sm leading-relaxed"
+                    style={{ color: 'var(--color-texto-suave)' }}
+                  >
+                    Mientras tanto, su trabajo sí está publicado: las fichas y las mediciones que
+                    se ven en este sitio son suyas.
+                  </p>
+                </div>
+              )}
             </section>
           )}
         </>

@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { cambiarEstadoIntegrante, cambiarRol } from '@/lib/auth/gestionEquipo'
 import { Tarjeta } from '@/components/ui/Tarjeta'
+import { FichaPublicaIntegrante } from './FichaPublicaIntegrante'
 import type { Integrante } from '@/lib/supabase/tipos'
 
 /**
@@ -115,6 +116,8 @@ export function GestionIntegrantes({
                     </button>
                   </div>
                 </div>
+
+                <FichaPublicaIntegrante persona={persona} />
               </Tarjeta>
             </li>
           )

@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { crearClientePublico } from '@/lib/supabase/servidor'
+import { CarruselFotos } from '@/components/fichas/CarruselFotos'
 import { urlFoto } from '@/lib/sitio'
 import type { FichaPublica } from '@/lib/supabase/tipos'
 
@@ -188,86 +189,26 @@ export default async function PaginaEspecie({ params }: { params: Promise<{ id: 
           </footer>
         </div>
 
+        {/*
+          Las fotos van en carrusel, no apiladas.
+
+          Una especie suele tener varias —el árbol entero, la hoja de cerca,
+          la flor— y apiladas la segunda y la tercera quedaban tan abajo que
+          nadie llegaba a verlas. En el celular se desliza con el dedo; en
+          escritorio hay flechas.
+        */}
         {fotos && fotos.length > 0 && (
-          <div className="flex flex-col gap-5 lg:sticky lg:top-6">
-            {fotos.map((foto, i) => (
-              <MarcoFoto
-                key={foto.ruta_storage}
-                src={urlFoto(foto.ruta_storage)}
-                alt={`Fotografía de ${ficha.nombre_comun} tomada en el colegio`}
-                pie={
-                  fotos.length > 1
-                    ? `${ficha.nombre_comun} · ${i + 1} de ${fotos.length}`
-                    : ficha.zona
-                      ? `${ficha.nombre_comun} · ${ficha.zona}`
-                      : ficha.nombre_comun
-                }
-                prioritaria={i === 0}
-              />
-            ))}
+          <div className="lg:sticky lg:top-6">
+            <CarruselFotos
+              fotos={fotos.map((foto) => ({
+                src: urlFoto(foto.ruta_storage),
+                alt: `Fotografía de ${ficha.nombre_comun} tomada en el colegio`,
+                pie: ficha.zona ? `${ficha.nombre_comun} · ${ficha.zona}` : ficha.nombre_comun,
+              }))}
+            />
           </div>
         )}
       </div>
     </article>
-  )
-}
-
-/**
- * Marco de la fotografía.
- *
- * ── Por qué un marco y no la imagen a secas ──────────────────────────────
- *
- * Estas fotos las toman estudiantes con el celular, en un patio, a
- * contraluz. Un borde blanco generoso con una sombra suave —el paspartú de
- * toda la vida— hace dos cosas: separa la imagen del fondo de la página,
- * que es casi del mismo tono, y le da el aire de lámina de herbario que le
- * corresponde a un registro de biodiversidad.
- *
- * El pie va DENTRO del marco, debajo de la imagen, como en una lámina
- * impresa. Repite el nombre y la zona porque una foto que alguien guarde o
- * comparta debe seguir diciendo qué es y dónde se tomó.
- *
- * ── Sobre la relación de aspecto ─────────────────────────────────────────
- *
- * No se fuerza ninguna. Un árbol se fotografía en vertical y un ave en
- * horizontal; recortar a un cuadrado para que la cuadrícula quede pareja
- * cortaría justamente la copa o las alas. La columna tiene ancho fijo y la
- * altura la decide cada foto.
- */
-function MarcoFoto({
-  src,
-  alt,
-  pie,
-  prioritaria,
-}: {
-  src: string
-  alt: string
-  pie: string
-  prioritaria: boolean
-}) {
-  return (
-    <figure
-      className="overflow-hidden rounded-[--radius-suave] p-3 sm:p-4"
-      style={{
-        backgroundColor: 'var(--color-superficie)',
-        border: '1px solid var(--color-borde)',
-        // Sombra muy suave: levanta la lámina del fondo sin llamar la
-        // atención sobre sí misma.
-        boxShadow: '0 1px 2px rgba(28,59,49,.04), 0 8px 24px -12px rgba(28,59,49,.18)',
-      }}
-    >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={src}
-        alt={alt}
-        loading={prioritaria ? 'eager' : 'lazy'}
-        className="w-full rounded-[--radius-tarjeta]"
-        style={{ backgroundColor: 'var(--color-salvia-clara)' }}
-      />
-
-      <figcaption className="mt-3 px-1 text-xs" style={{ color: 'var(--color-texto-suave)' }}>
-        {pie}
-      </figcaption>
-    </figure>
   )
 }

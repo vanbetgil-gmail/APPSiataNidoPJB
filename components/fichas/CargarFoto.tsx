@@ -26,7 +26,14 @@ export interface FotoPendiente {
 
 const LADO_MAXIMO = 1600
 const CALIDAD = 0.82
-const MAXIMO_FOTOS = 3
+/**
+ * Tope de fotografias por ficha.
+ *
+ * Cuenta las que YA estan guardadas mas las que se van a subir. Antes el
+ * tope solo miraba las nuevas, asi que editar una ficha con tres fotos
+ * permitia anadir otras tres.
+ */
+export const MAXIMO_FOTOS = 3
 
 async function redimensionar(original: File): Promise<FotoPendiente> {
   const bitmap = await createImageBitmap(original)
@@ -63,10 +70,14 @@ async function redimensionar(original: File): Promise<FotoPendiente> {
 export function CargarFoto({
   fotos,
   onCambio,
+  yaGuardadas = 0,
 }: {
   fotos: FotoPendiente[]
   onCambio: (fotos: FotoPendiente[]) => void
+  /** Cuantas tiene ya la ficha en la base. Cuentan para el tope. */
+  yaGuardadas?: number
 }) {
+  const cupo = Math.max(0, MAXIMO_FOTOS - yaGuardadas - fotos.length)
   const entrada = useRef<HTMLInputElement>(null)
   const [procesando, setProcesando] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -77,7 +88,7 @@ export function CargarFoto({
     setError(null)
     try {
       const nuevas: FotoPendiente[] = []
-      for (const archivo of Array.from(lista).slice(0, MAXIMO_FOTOS - fotos.length)) {
+      for (const archivo of Array.from(lista).slice(0, cupo)) {
         if (!archivo.type.startsWith('image/')) {
           setError('Solo se pueden subir imágenes.')
           continue
@@ -126,7 +137,7 @@ export function CargarFoto({
         </ul>
       )}
 
-      {fotos.length < MAXIMO_FOTOS && (
+      {cupo > 0 && (
         <>
           <input
             ref={entrada}
@@ -150,12 +161,21 @@ export function CargarFoto({
                 una del dispositivo
                 <br />
                 <span className="text-[color:var(--color-texto-suave)]">
-                  Hasta {MAXIMO_FOTOS}. Se reducen automáticamente antes de subirlas.
+                  {yaGuardadas > 0
+                    ? `Puede añadir ${cupo} más. El tope es ${MAXIMO_FOTOS} por ficha.`
+                    : `Hasta ${MAXIMO_FOTOS}. Se reducen automáticamente antes de subirlas.`}
                 </span>
               </span>
             )}
           </label>
         </>
+      )}
+
+      {cupo === 0 && (
+        <p className="text-sm" style={{ color: 'var(--color-texto-suave)' }}>
+          Esta ficha ya tiene las {MAXIMO_FOTOS} fotografías que admite. Para cambiar una, quite
+          primero la que sobre.
+        </p>
       )}
 
       {error && (

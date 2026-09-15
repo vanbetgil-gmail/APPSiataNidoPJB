@@ -17,6 +17,7 @@ import type {
 } from '@/lib/supabase/tipos'
 import { SelectorUbicacion } from './SelectorUbicacion'
 import { CargarFoto, type FotoPendiente } from './CargarFoto'
+import { FotosGuardadas, type FotoGuardada } from './FotosGuardadas'
 import { AvisoPersonas } from './AvisoPersonas'
 
 /**
@@ -68,6 +69,7 @@ export function FormularioFicha({
   autorPorDefecto,
   esResponsable,
   ficha,
+  fotosGuardadas = [],
 }: {
   categorias: CategoriaBiodiversidad[]
   zonas: ZonaCampus[]
@@ -78,6 +80,8 @@ export function FormularioFicha({
   esResponsable: boolean
   /** Presente al editar; ausente al crear. */
   ficha?: FichaBiodiversidad
+  /** Las que la ficha ya tiene. Cuentan para el tope de tres. */
+  fotosGuardadas?: FotoGuardada[]
 }) {
   const router = useRouter()
   const editando = Boolean(ficha)
@@ -97,6 +101,7 @@ export function FormularioFicha({
   const [anadiendoZona, setAnadiendoZona] = useState(false)
 
   const [fotos, setFotos] = useState<FotoPendiente[]>([])
+  const [guardadas, setGuardadas] = useState<FotoGuardada[]>(fotosGuardadas)
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -111,7 +116,7 @@ export function FormularioFicha({
       descripcion: datos.descripcion,
       punto_mapa_id: datos.punto ? 'pendiente' : (ficha?.punto_mapa_id ?? undefined),
     },
-    fotos.length,
+    guardadas.length + fotos.length,
     exigencias
   )
   const faltaCampo = (campo: CampoFicha) => faltantes.some((f) => f.campo === campo)
@@ -232,8 +237,11 @@ export function FormularioFicha({
        * fallo de permisos se corrige en la migración 0014; el silencio,
        * aquí.
        */
+      const ordenBase = guardadas.reduce((mayor, f) => Math.max(mayor, f.orden + 1), 0)
+
       for (const [indice, foto] of fotos.entries()) {
-        const ruta = `${fichaId}/${indice}-${Date.now()}.jpg`
+        const orden = ordenBase + indice
+        const ruta = `${fichaId}/${orden}-${Date.now()}.jpg`
 
         const { error: errorSubida } = await supabase.storage
           .from('fotos-fichas')
@@ -244,7 +252,7 @@ export function FormularioFicha({
         const { error: errorRegistro } = await supabase.from('foto_ficha').insert({
           ficha_id: fichaId,
           ruta_storage: ruta,
-          orden: indice,
+          orden,
           subida_por: autorPorDefecto,
         })
 
@@ -273,10 +281,17 @@ export function FormularioFicha({
         <h2 className="text-lg font-semibold">1. La fotografía</h2>
         {editando && (
           <p className="text-sm" style={{ color: 'var(--color-texto-suave)' }}>
-            Las que añada aquí se suman a las que ya tenga la ficha.
+            Las que añada aquí se suman a las que ya tenga la ficha, hasta un máximo de tres.
           </p>
         )}
-        <CargarFoto fotos={fotos} onCambio={setFotos} />
+
+        <FotosGuardadas
+          fotos={guardadas}
+          nombreEspecie={datos.nombre_comun || 'esta especie'}
+          onQuitada={(id) => setGuardadas((g) => g.filter((f) => f.id !== id))}
+        />
+
+        <CargarFoto fotos={fotos} onCambio={setFotos} yaGuardadas={guardadas.length} />
         <AvisoPersonas />
       </section>
 

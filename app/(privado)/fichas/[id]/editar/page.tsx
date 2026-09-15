@@ -36,9 +36,15 @@ export default async function PaginaEditarFicha({
   const integrante = await exigirIntegrante(`/fichas/${id}/editar`)
   const supabase = await crearClienteServidor()
 
-  const [{ data }, datosFormulario] = await Promise.all([
+  const [{ data }, datosFormulario, { data: fotos }] = await Promise.all([
     supabase.from('ficha_biodiversidad').select('*').eq('id', id).maybeSingle(),
     cargarDatosDelFormulario(),
+    // Las que ya tiene: cuentan para el tope de tres y se pueden retirar.
+    supabase
+      .from('foto_ficha')
+      .select('id, ruta_storage, orden')
+      .eq('ficha_id', id)
+      .order('orden'),
   ])
 
   // RLS ya decide qué puede leer cada quien: si no llega nada, es que esta
@@ -96,6 +102,7 @@ export default async function PaginaEditarFicha({
             autorPorDefecto={integrante.id}
             esResponsable={integrante.esResponsable}
             ficha={ficha}
+            fotosGuardadas={fotos ?? []}
           />
         </>
       )}

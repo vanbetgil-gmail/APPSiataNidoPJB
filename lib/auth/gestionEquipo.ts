@@ -117,3 +117,49 @@ export async function cambiarRol(
   revalidatePath('/admin/integrantes')
   return { ok: true }
 }
+
+/**
+ * Cómo aparece una persona en la página pública del equipo (migración 0015).
+ *
+ * ── Por qué las tres cosas van juntas ────────────────────────────────────
+ *
+ * Mostrarse o no, con qué cargo y en qué lugar de la lista son decisiones
+ * que se toman de una sola vez, mirando la página. Separarlas en tres
+ * acciones obligaría a guardar tres veces para colocar bien a una persona.
+ *
+ * ── Lo que esta función NO puede hacer ───────────────────────────────────
+ *
+ * Mostrar a un menor de edad sin autorización de acudiente. Poner
+ * `visible_en_equipo` en `true` no basta: la vista `integrante_publico`
+ * exige ADEMÁS la autorización, y esa condición no se puede tocar desde
+ * aquí. Ocultar es una decisión editorial; mostrar sigue necesitando
+ * permiso escrito (FR-051d).
+ */
+export async function actualizarFichaPublica(
+  integranteId: string,
+  datos: { visible: boolean; cargo: string; orden: number | null }
+): Promise<ResultadoEquipo> {
+  await exigirResponsable()
+  const supabase = await crearClienteServidor()
+
+  const cargo = datos.cargo.trim()
+
+  const { error } = await supabase
+    .from('integrante')
+    .update({
+      visible_en_equipo: datos.visible,
+      // Cadena vacía = sin cargo. En la base es un nulo, no un texto vacío:
+      // no hay cargo, no hay un cargo que se llama «».
+      grado: cargo || null,
+      orden_equipo: datos.orden,
+    })
+    .eq('id', integranteId)
+
+  if (error) {
+    return { ok: false, mensaje: 'No se pudo guardar la ficha pública de esta persona.' }
+  }
+
+  revalidatePath('/admin/integrantes')
+  revalidatePath('/creditos')
+  return { ok: true }
+}

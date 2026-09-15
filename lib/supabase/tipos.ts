@@ -42,6 +42,15 @@ export type Integrante = {
   /** Ruta en la cubeta PRIVADA `fotos-equipo`. No es un enlace utilizable. */
   foto_ruta: string | null
   semblanza: string | null
+  /**
+   * Si aparece en la pagina publica del equipo (migracion 0015).
+   *
+   * Distinto de `activo`: quien se oculta conserva su acceso, sus fichas y
+   * su cuenta. Lo unico que cambia es que no sale en el anuario publico.
+   */
+  visible_en_equipo: boolean
+  /** Menor va primero en la pagina del equipo. NULL queda al final. */
+  orden_equipo: number | null
 }
 
 export type LugarMedicion = {
@@ -251,7 +260,19 @@ export type IntegrantePublico = {
   grado: string | null
   foto_ruta: string | null
   semblanza: string | null
+  orden_equipo: number | null
   creado_en: string
+}
+
+/**
+ * Recuentos del equipo, sin un solo nombre (migracion 0015).
+ *
+ * Permite decir «y nueve estudiantes mas» en la pagina publica sin publicar
+ * datos de quien no lo ha autorizado. Un recuento no identifica a nadie.
+ */
+export type EquipoResumen = {
+  estudiantes_totales: number
+  estudiantes_visibles: number
 }
 
 export type PuntoDestacadoPublico = {
@@ -295,6 +316,7 @@ export type Database = {
       ficha_publica: { Row: FichaPublica; Relationships: [] }
       punto_destacado_publico: { Row: PuntoDestacadoPublico; Relationships: [] }
       integrante_publico: { Row: IntegrantePublico; Relationships: [] }
+      equipo_resumen: { Row: EquipoResumen; Relationships: [] }
     }
     Functions: {
       es_integrante_activo: { Args: Record<string, never>; Returns: boolean }
