@@ -3,9 +3,8 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Map as MapaLeaflet } from 'leaflet'
-import type { FichaPublica, ImagenBaseMapa, PuntoDestacadoPublico } from '@/lib/supabase/tipos'
-import { relativaALeaflet } from '@/lib/mapa/coordenadas'
-import { MapaBase } from './MapaBase'
+import type { FichaPublica, PuntoDestacadoPublico } from '@/lib/supabase/tipos'
+import { MapaSatelital } from './MapaSatelital'
 import { CapaPuntos } from './CapaPuntos'
 import { FiltroCategorias } from './FiltroCategorias'
 import { BuscadorEspecies } from './BuscadorEspecies'
@@ -19,11 +18,9 @@ import { EstadoVacio } from './EstadoVacio'
  * reutilizar en la ubicación de fichas (US5).
  */
 export function MapaExplorador({
-  imagen,
   fichas,
   destacados,
 }: {
-  imagen: Pick<ImagenBaseMapa, 'ruta_teselas' | 'zoom_maximo' | 'ancho_px' | 'alto_px'>
   fichas: FichaPublica[]
   destacados: PuntoDestacadoPublico[]
 }) {
@@ -55,13 +52,11 @@ export function MapaExplorador({
       if (!mapa) return
       // Sin punto marcado no hay a dónde centrar. No es un error: la ficha
       // existe y se ve en el catálogo, solo que todavía no en el mapa.
-      if (ficha.x_relativa === null || ficha.y_relativa === null) return
-      mapa.setView(
-        relativaALeaflet({ x: ficha.x_relativa, y: ficha.y_relativa }, imagen),
-        Math.min(3, imagen.zoom_maximo)
-      )
+      if (typeof ficha.latitud !== 'number' || typeof ficha.longitud !== 'number') return
+      // Zoom 20: lo bastante cerca para distinguir un árbol de su vecino.
+      mapa.setView([ficha.latitud, ficha.longitud], 20)
     },
-    [mapa, imagen]
+    [mapa]
   )
 
   const abrirFicha = useCallback((ficha: FichaPublica) => router.push(`/especie/${ficha.id}`), [router])
@@ -81,12 +76,11 @@ export function MapaExplorador({
       </div>
 
       <div className="relative min-h-[60vh] flex-1">
-        <MapaBase imagen={imagen} onMapaListo={setMapa}>
+        <MapaSatelital onMapaListo={setMapa}>
           {fichas.length === 0 && <EstadoVacio />}
-        </MapaBase>
+        </MapaSatelital>
         <CapaPuntos
           mapa={mapa}
-          imagen={imagen}
           fichas={visibles}
           destacados={destacados}
           onSeleccionarFicha={abrirFicha}

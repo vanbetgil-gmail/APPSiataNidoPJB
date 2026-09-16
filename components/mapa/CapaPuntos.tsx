@@ -2,8 +2,8 @@
 
 import { useEffect, useRef } from 'react'
 import type { Map as MapaLeaflet, LayerGroup } from 'leaflet'
-import type { FichaPublica, ImagenBaseMapa, PuntoDestacadoPublico } from '@/lib/supabase/tipos'
-import { relativaALeaflet } from '@/lib/mapa/coordenadas'
+import type { FichaPublica, PuntoDestacadoPublico } from '@/lib/supabase/tipos'
+import { reinoDeCategoria } from '@/lib/biodiversidad/reinos'
 
 /**
  * Capa de marcadores del mapa (T029, T115).
@@ -12,16 +12,25 @@ import { relativaALeaflet } from '@/lib/mapa/coordenadas'
  * correos (FR-051): la protección está en la base de datos, no en la
  * confianza de que este componente se acuerde de omitir un campo.
  *
- * Señala también qué puntos tienen vista inmersiva antes de abrirlos
- * (FR-010e), aunque el visor llegue en una fase posterior: la señal cuesta
- * poco y evita rehacer la capa después.
+ * ── Coordenadas reales, no fracciones ────────────────────────────────────
+ *
+ * Antes cada punto era una fracción de la ortofoto y este componente
+ * necesitaba las dimensiones de la imagen para traducirla. Ahora son latitud
+ * y longitud (migración 0018), que Leaflet entiende directamente.
+ *
+ * ── El color sale del reino, no de una tabla de categorías ───────────────
+ *
+ * Había un diccionario con «Árbol», «Ave», «Insecto»… y esas categorías
+ * dejaron de existir en la migración 0010, que las redujo a Fauna y Flora.
+ * El diccionario seguía ahí, sin coincidir con nada, así que TODOS los
+ * puntos caían en el color de respaldo y el mapa salía monocromo.
+ *
+ * Derivarlo de `reinoDeCategoria` —lo mismo que usan los filtros— hace
+ * imposible que vuelvan a desincronizarse.
  */
 
 export interface CapaPuntosProps {
   mapa: MapaLeaflet | null
-  /** Necesaria para convertir coordenadas: el lienzo teselado es cuadrado
-      y la foto no, así que hay que descontar el relleno. */
-  imagen: Pick<ImagenBaseMapa, 'ancho_px' | 'alto_px'>
   fichas: FichaPublica[]
   destacados?: PuntoDestacadoPublico[]
   /** Identificadores de punto con material inmersivo disponible (FR-010e). */
@@ -29,21 +38,18 @@ export interface CapaPuntosProps {
   onSeleccionarFicha?: (ficha: FichaPublica) => void
 }
 
-const COLOR_POR_CATEGORIA: Record<string, string> = {
-  Árbol: '#2f7a45',
-  Arbusto: '#4f9d5f',
-  Ave: '#f2a024',
-  Insecto: '#8b5cf6',
-  'Planta ornamental': '#e05297',
+const COLOR_POR_REINO: Record<string, string> = {
+  fauna: '#f2a024',
+  flora: '#2f7a45',
+  otros: '#8b5cf6',
 }
 
 function colorDe(categoria: string): string {
-  return COLOR_POR_CATEGORIA[categoria] ?? 'var(--color-marca)'
+  return COLOR_POR_REINO[reinoDeCategoria(categoria)] ?? 'var(--color-marca)'
 }
 
 export function CapaPuntos({
   mapa,
-  imagen,
   fichas,
   destacados = [],
   puntosConVistaInmersiva,
@@ -66,16 +72,20 @@ export function CapaPuntos({
 
       for (const ficha of fichas) {
         /*
-         * Una ficha publicada puede no tener punto marcado: la ortofoto
-         * llegó después que las fichas (migración 0013). Se omite del mapa
-         * —no hay dónde ponerla— pero sigue estando en el catálogo, que es
+         * Una ficha publicada puede no tener punto marcado: las dieciséis
+         * fichas de taxonomía se cargaron antes de que existiera el mapa.
+         * Se omite —no hay dónde ponerla— pero sigue en el catálogo, que es
          * donde se la encuentra por nombre.
          */
-        if (ficha.x_relativa === null || ficha.y_relativa === null) continue
+        // `typeof` y no `=== null`: mientras la migración 0018 no esté
+        // aplicada, la vista no devuelve estas columnas y llegan como
+        // `undefined`, que `=== null` deja pasar. Leaflet reventaría con un
+        // marcador en [undefined, undefined].
+        if (typeof ficha.latitud !== 'number' || typeof ficha.longitud !== 'number') continue
 
         const tieneInmersiva = puntosConVistaInmersiva?.has(ficha.id) ?? false
 
-        const marcador = L.circleMarker(relativaALeaflet({ x: ficha.x_relativa, y: ficha.y_relativa }, imagen), {
+        const marcador = L.circleMarker([ficha.latitud, ficha.longitud], {
           radius: 9,
           color: '#ffffff',
           weight: 2,
@@ -110,16 +120,16 @@ export function CapaPuntos({
       // Lugares marcados manualmente como de alta contaminación (FR-010j).
       // El público ve QUÉ lugares están marcados, nunca los valores (A-010d).
       for (const destacado of destacados) {
-        L.circleMarker(
-          relativaALeaflet({ x: destacado.x_relativa, y: destacado.y_relativa }, imagen),
-          {
-            radius: 12,
-            color: 'var(--color-ica-sensibles)',
-            weight: 3,
-            fillColor: 'var(--color-ica-daniña)',
-            fillOpacity: 0.65,
-          }
-        )
+        if (typeof destacado.latitud !== 'number' || typeof destacado.longitud !== 'number')
+          continue
+
+        L.circleMarker([destacado.latitud, destacado.longitud], {
+          radius: 12,
+          color: 'var(--color-ica-sensibles)',
+          weight: 3,
+          fillColor: 'var(--color-ica-daniña)',
+          fillOpacity: 0.65,
+        })
           .bindTooltip(`${destacado.nombre} · punto de seguimiento de calidad del aire`, {
             direction: 'top',
           })
@@ -134,7 +144,7 @@ export function CapaPuntos({
       grupoRef.current?.remove()
       grupoRef.current = null
     }
-  }, [mapa, imagen, fichas, destacados, puntosConVistaInmersiva, onSeleccionarFicha])
+  }, [mapa, fichas, destacados, puntosConVistaInmersiva, onSeleccionarFicha])
 
   return null
 }

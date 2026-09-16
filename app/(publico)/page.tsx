@@ -1,7 +1,7 @@
 import { crearClientePublico } from '@/lib/supabase/servidor'
 import { MapaExplorador } from '@/components/mapa/MapaExplorador'
 import { Marca } from '@/components/ui/Marca'
-import type { FichaPublica, ImagenBaseMapa, PuntoDestacadoPublico } from '@/lib/supabase/tipos'
+import type { FichaPublica, PuntoDestacadoPublico } from '@/lib/supabase/tipos'
 
 /**
  * Portada pública: el mapa de biodiversidad (T033).
@@ -23,37 +23,25 @@ export const revalidate = 300
 export default async function PaginaMapa() {
   const supabase = crearClientePublico()
 
-  const [imagenRes, fichasRes, destacadosRes] = await Promise.all([
-    supabase
-      .from('imagen_base_mapa')
-      .select('ruta_teselas, zoom_maximo, ancho_px, alto_px')
-      .eq('vigente', true)
-      .maybeSingle(),
+  const [fichasRes, destacadosRes] = await Promise.all([
     supabase.from('ficha_publica').select('*'),
     supabase.from('punto_destacado_publico').select('*'),
   ])
 
-  const imagen = imagenRes.data as Pick<
-    ImagenBaseMapa,
-    'ruta_teselas' | 'zoom_maximo' | 'ancho_px' | 'alto_px'
-  > | null
   const fichas = (fichasRes.data ?? []) as FichaPublica[]
   const destacados = (destacadosRes.data ?? []) as PuntoDestacadoPublico[]
 
-  // Sin ortofoto registrada no hay mapa que mostrar. Se explica en lugar de
-  // dejar una pantalla rota: es el estado real hasta que llegue la toma de dron.
-  if (!imagen) {
-    return (
-      <div className="mx-auto max-w-2xl px-4 py-16 text-center">
-        <Marca conLecturaCompleta />
-        <h1 className="mt-8 text-2xl font-semibold">El mapa aún no está disponible</h1>
-        <p className="mt-3 leading-relaxed text-[color:var(--color-texto-suave)]">
-          Todavía no se ha registrado la imagen aérea del colegio. En cuanto el equipo cargue la
-          toma de dron, el mapa de biodiversidad aparecerá aquí.
-        </p>
-      </div>
-    )
-  }
+  /*
+   * ── Esta página ya no depende de la ortofoto ────────────────────────
+   *
+   * Antes, si no había imagen aérea registrada, la portada entera decía
+   * «El mapa aún no está disponible». Y no la había: el vuelo de dron que
+   * hizo el colegio no tiene una sola toma cenital, así que el mapa llevaba
+   * meses sin existir para nadie.
+   *
+   * Con coordenadas reales (migración 0018) el mapa funciona sobre imagen
+   * satelital pública. La ortofoto, cuando llegue, será una capa más encima.
+   */
 
   return (
     <div className="flex h-full min-h-[calc(100dvh-8rem)] flex-col">
@@ -65,11 +53,11 @@ export default async function PaginaMapa() {
         </h1>
         <p className="mt-1 max-w-2xl text-sm leading-relaxed text-[color:var(--color-texto-suave)]">
           Cada punto lo documentaron estudiantes del Instituto Salesiano Pedro Justo Berrío. Toque uno para
-          ver su fotografía y lo que observaron.
+          ver su fotografía y lo que observaron. El contorno verde marca los límites del colegio.
         </p>
       </div>
 
-      <MapaExplorador imagen={imagen} fichas={fichas} destacados={destacados} />
+      <MapaExplorador fichas={fichas} destacados={destacados} />
     </div>
   )
 }

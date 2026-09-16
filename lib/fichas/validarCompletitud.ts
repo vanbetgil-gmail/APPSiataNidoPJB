@@ -109,7 +109,7 @@ export function validarCompletitud(
   if (exigencias.ubicacion && !ficha.punto_mapa_id) {
     faltan.push({
       campo: 'punto_mapa_id',
-      mensaje: 'Falta marcar dónde está: toque su ubicación sobre la imagen del colegio.',
+      mensaje: 'Falta marcar dónde está: toque su ubicación sobre el mapa del colegio.',
     })
   }
 
@@ -141,7 +141,7 @@ export function pendientesNoBloqueantes(
   if (!exigencias.ubicacion && !ficha.punto_mapa_id) {
     pendientes.push({
       campo: 'punto_mapa_id',
-      mensaje: 'Ubicación pendiente: se marcará cuando esté lista la imagen aérea del colegio.',
+      mensaje: 'Ubicación pendiente: puede marcarla sobre el mapa al editar la ficha.',
     })
   }
 

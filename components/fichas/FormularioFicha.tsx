@@ -16,6 +16,7 @@ import type {
   ZonaCampus,
 } from '@/lib/supabase/tipos'
 import { SelectorUbicacion } from './SelectorUbicacion'
+import type { Coordenada } from '@/lib/mapa/campus'
 import { CargarFoto, type FotoPendiente } from './CargarFoto'
 import { FotosGuardadas, type FotoGuardada } from './FotosGuardadas'
 import { AvisoPersonas } from './AvisoPersonas'
@@ -58,7 +59,8 @@ export interface DatosFicha {
   descripcion: string
   zona_id: string
   autor_id: string
-  punto: { x: number; y: number } | null
+  /** Latitud y longitud reales (migración 0018). */
+  punto: Coordenada | null
 }
 
 export function FormularioFicha({
@@ -169,18 +171,32 @@ export function FormularioFicha({
       let puntoId: string | null = ficha?.punto_mapa_id ?? null
 
       if (datos.punto) {
-        const { data: punto, error: errorPunto } = await supabase
-          .from('punto_mapa')
-          .insert({
-            x_relativa: datos.punto.x,
-            y_relativa: datos.punto.y,
-            imagen_base_version: 1,
-          })
-          .select('id')
-          .single()
+        const [latitud, longitud] = datos.punto
 
-        if (errorPunto || !punto) throw new Error('No se pudo guardar la ubicación en el mapa.')
-        puntoId = punto.id
+        /*
+         * Un punto por ficha, no uno por edición.
+         *
+         * Si la ficha ya tenía punto se MUEVE el que existe. Insertando uno
+         * nuevo cada vez, corregir tres veces la ubicación de un guayacán
+         * dejaría tres filas en `punto_mapa`, dos de ellas sin que nada las
+         * referencie y sin forma de saber cuál era la buena.
+         */
+        if (puntoId) {
+          const { error: e } = await supabase
+            .from('punto_mapa')
+            .update({ latitud, longitud })
+            .eq('id', puntoId)
+          if (e) throw new Error('No se pudo mover la ubicación en el mapa.')
+        } else {
+          const { data: punto, error: errorPunto } = await supabase
+            .from('punto_mapa')
+            .insert({ latitud, longitud })
+            .select('id')
+            .single()
+
+          if (errorPunto || !punto) throw new Error('No se pudo guardar la ubicación en el mapa.')
+          puntoId = punto.id
+        }
       }
 
       const campos = {
@@ -360,21 +376,26 @@ export function FormularioFicha({
           </div>
         )}
 
-        {imagen ? (
-          <div className="flex flex-col gap-1.5">
-            <p className="text-sm font-medium">Punto exacto sobre la imagen aérea</p>
-            <SelectorUbicacion
-              imagen={imagen}
-              punto={datos.punto}
-              onCambio={(punto) => setDatos((d) => ({ ...d, punto }))}
-            />
-          </div>
-        ) : (
-          <p className="text-sm" style={{ color: 'var(--color-texto-suave)' }}>
-            El punto exacto sobre la imagen aérea del colegio se podrá marcar cuando esa imagen
-            esté lista. La zona ya queda registrada.
-          </p>
-        )}
+        {/*
+          El mapa ya no espera a la ortofoto.
+
+          Antes esta sección decía «se podrá marcar cuando esa imagen esté
+          lista», y esa imagen no llegaba: el vuelo de dron no tiene tomas
+          cenitales. Ahora se marca sobre imagen satelital, con coordenadas
+          reales que sobrevivirán a cualquier ortofoto futura.
+        */}
+        <div className="flex flex-col gap-1.5">
+          <p className="text-sm font-medium">Punto exacto sobre el mapa</p>
+          <SelectorUbicacion
+            punto={datos.punto}
+            onCambio={(punto) => setDatos((d) => ({ ...d, punto }))}
+          />
+          {ficha?.punto_mapa_id && !datos.punto && (
+            <p className="text-xs" style={{ color: 'var(--color-texto-suave)' }}>
+              Esta ficha ya tiene un punto guardado. Toque el mapa solo si quiere moverlo.
+            </p>
+          )}
+        </div>
       </section>
 
       <section className="flex flex-col gap-4">

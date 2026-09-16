@@ -131,11 +131,24 @@ export type Medicion = {
 }
 
 /** Posición sobre la ortofoto, en fracciones 0–1 del ancho y alto (FR-006a). */
+/**
+ * Un punto del mapa.
+ *
+ * Desde la migracion 0018 hay dos formas de decir donde esta algo, y la
+ * restriccion `punto_dice_donde` exige que haya al menos una:
+ *
+ *  · Latitud y longitud reales. Es la buena: el sitio mismo, independiente
+ *    de cualquier imagen. Es lo que escribe la aplicacion hoy.
+ *  · Fraccion de una ortofoto concreta. Es el sistema antiguo; se conserva
+ *    porque hay datos guardados asi y tirarlos no arregla nada.
+ */
 export type PuntoMapa = {
   id: string
-  x_relativa: number
-  y_relativa: number
-  imagen_base_version: number
+  latitud: number | null
+  longitud: number | null
+  x_relativa: number | null
+  y_relativa: number | null
+  imagen_base_version: number | null
 }
 
 export type ImagenBaseMapa = {
@@ -240,12 +253,15 @@ export type FichaPublica = {
   /** Zona del campus. Nula si la ficha no la registró. */
   zona: string | null
   /*
-   * Nulas mientras la ficha no tenga punto marcado sobre la ortofoto.
+   * Nulas mientras la ficha no tenga punto marcado.
    *
    * La vista usa `left join`: una ficha publicada sale al catálogo aunque
    * no se pueda dibujar en el mapa. Quien las pinte DEBE descartar las
    * que vengan sin coordenadas (migración 0013).
    */
+  latitud: number | null
+  longitud: number | null
+  /** Sistema antiguo: fracción de la ortofoto. Se conserva (migración 0018). */
   x_relativa: number | null
   y_relativa: number | null
   autor_visible: string | null
@@ -285,8 +301,10 @@ export type EquipoResumen = {
 export type PuntoDestacadoPublico = {
   lugar_id: string
   nombre: string
-  x_relativa: number
-  y_relativa: number
+  latitud: number | null
+  longitud: number | null
+  x_relativa: number | null
+  y_relativa: number | null
 }
 
 type Tabla<Fila, Insert = Partial<Fila>, Update = Partial<Fila>> = {

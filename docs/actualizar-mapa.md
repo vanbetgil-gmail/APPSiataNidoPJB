@@ -1,5 +1,24 @@
 # Cómo actualizar el mapa tras un vuelo de dron
 
+> **Leer esto primero (septiembre de 2026).**
+>
+> El mapa **ya funciona sin ortofoto**. Desde la migración 0018 el fondo es
+> imagen satelital pública (Esri World Imagery) con el contorno del colegio
+> encima, y cada ficha guarda su **latitud y longitud reales**.
+>
+> Eso cambia para qué sirve esta guía. La ortofoto ya no es un requisito
+> para tener mapa: es una mejora de la imagen de fondo, porque una toma de
+> dron a 80 metros distingue árboles individuales y el satélite no siempre.
+>
+> Y cambia algo mejor: **al cargar una ortofoto nueva no hay que volver a
+> marcar ninguna ficha**. Antes las posiciones eran fracciones de una imagen
+> concreta y un encuadre distinto las desplazaba todas en silencio. Una
+> latitud y una longitud son el sitio mismo.
+>
+> Lo que hace falta del vuelo, y que el material actual **no tiene**, son
+> **tomas cenitales** —cámara recta hacia abajo— con solape. Está explicado
+> en [inventario-dron.md](./inventario-dron.md).
+
 Esta guía es para el equipo del colegio. No hace falta saber programar: son
 tres pasos y dos comandos.
 

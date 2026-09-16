@@ -2,54 +2,59 @@
 
 import { useCallback, useState } from 'react'
 import type { Map as MapaLeaflet, CircleMarker } from 'leaflet'
-import { MapaBase } from '@/components/mapa/MapaBase'
-import { relativaALeaflet } from '@/lib/mapa/coordenadas'
-import type { ImagenBaseMapa } from '@/lib/supabase/tipos'
+import { MapaSatelital } from '@/components/mapa/MapaSatelital'
+import { comoTexto, dentroDelCampus, type Coordenada } from '@/lib/mapa/campus'
 
 /**
- * Selector de ubicación sobre la imagen aérea (T094) — FR-006a, FR-042, FR-042a.
+ * Selector de ubicación sobre el mapa (T094) — FR-006a, FR-042, FR-042a.
  *
- * Reutiliza el mismo `MapaBase` del mapa público, así que la posición que se
- * marca aquí y la que se ve allí son la misma por construcción: no hay dos
- * implementaciones que puedan desincronizarse.
+ * Reutiliza el mismo `MapaSatelital` del mapa público, así que la posición
+ * que se marca aquí y la que se ve allí son la misma por construcción: no hay
+ * dos implementaciones que puedan desincronizarse.
  *
  * ── Sin GPS, a propósito ─────────────────────────────────────────────────
  *
- * FR-042a prohíbe depender del GPS. No es una limitación técnica: en el patio
- * de un colegio el GPS tiene un error de 5 a 10 metros, suficiente para
- * confundir dos árboles vecinos. Tocar la imagen es más preciso que el
- * satélite a esta escala.
+ * FR-042a prohíbe depender del GPS, y no es una limitación técnica. En el
+ * patio de un colegio el GPS tiene un error de cinco a diez metros:
+ * suficiente para confundir dos árboles vecinos. Tocar la imagen con el dedo,
+ * viendo el árbol, es más preciso que el satélite a esta escala.
+ *
+ * ── Fuera del campus no se marca ─────────────────────────────────────────
+ *
+ * FR-042 pedía que fuera imposible marcar fuera de la imagen. Aquí el límite
+ * es el polígono del colegio, con unos metros de tolerancia para los árboles
+ * pegados a la reja. Un toque fuera no se ignora en silencio: se dice por
+ * qué, porque el silencio se interpreta como que la aplicación no responde.
  */
 
-export interface PuntoRelativo {
-  x: number
-  y: number
-}
-
 export function SelectorUbicacion({
-  imagen,
   punto,
   onCambio,
 }: {
-  imagen: Pick<ImagenBaseMapa, 'ruta_teselas' | 'zoom_maximo' | 'ancho_px' | 'alto_px'>
-  punto: PuntoRelativo | null
-  onCambio: (punto: PuntoRelativo) => void
+  punto: Coordenada | null
+  onCambio: (punto: Coordenada) => void
 }) {
   const [mapa, setMapa] = useState<MapaLeaflet | null>(null)
   const [marcador, setMarcador] = useState<CircleMarker | null>(null)
+  const [fuera, setFuera] = useState(false)
 
   const marcar = useCallback(
-    async (relativa: PuntoRelativo) => {
-      onCambio(relativa)
+    async (coordenada: Coordenada) => {
+      if (!dentroDelCampus(coordenada)) {
+        setFuera(true)
+        return
+      }
+
+      setFuera(false)
+      onCambio(coordenada)
       if (!mapa) return
 
       const L = await import('leaflet')
-      const posicion = relativaALeaflet(relativa, imagen)
 
       if (marcador) {
-        marcador.setLatLng(posicion)
+        marcador.setLatLng(coordenada)
       } else {
-        const nuevo = L.circleMarker(posicion, {
+        const nuevo = L.circleMarker(coordenada, {
           radius: 10,
           color: '#ffffff',
           weight: 3,
@@ -59,25 +64,27 @@ export function SelectorUbicacion({
         setMarcador(nuevo)
       }
     },
-    [mapa, marcador, imagen, onCambio]
+    [mapa, marcador, onCambio]
   )
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="h-[380px] overflow-hidden rounded-[--radius-tarjeta] border border-[color:var(--color-borde)]">
-        <MapaBase imagen={imagen} onMapaListo={setMapa} onClicEnMapa={marcar} />
+      <div className="relative h-[380px] overflow-hidden rounded-[--radius-tarjeta] border border-[color:var(--color-borde)]">
+        <MapaSatelital onMapaListo={setMapa} onClicEnMapa={marcar} />
       </div>
 
       <p aria-live="polite" className="text-sm text-[color:var(--color-texto-suave)]">
-        {punto ? (
+        {fuera ? (
+          <span className="text-[color:var(--color-ica-daniña)]">
+            Ese punto queda fuera del colegio. Marque dentro del contorno verde.
+          </span>
+        ) : punto ? (
           <>
             Ubicación marcada. Toque otra vez si quiere corregirla.{' '}
-            <span className="text-xs">
-              ({(punto.x * 100).toFixed(1)} %, {(punto.y * 100).toFixed(1)} % de la imagen)
-            </span>
+            <span className="text-xs">({comoTexto(punto)})</span>
           </>
         ) : (
-          'Toque sobre la imagen el lugar exacto donde encontró la especie. Acerque el mapa para afinar.'
+          'Toque sobre el mapa el lugar exacto donde encontró la especie. Acerque con dos dedos para afinar.'
         )}
       </p>
     </div>
