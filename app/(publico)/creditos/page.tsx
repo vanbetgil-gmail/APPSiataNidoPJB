@@ -95,6 +95,22 @@ async function cargarResumen(): Promise<{
   )
 }
 
+/**
+ * Las dos primeras iniciales de un nombre.
+ *
+ * Se saltan las partículas —«de», «del», «la»— porque «Juan de la Cruz»
+ * daría «JD» en vez de «JC», que es como lo escribiría cualquiera.
+ */
+function iniciales(nombre: string): string {
+  const particulas = new Set(['de', 'del', 'la', 'las', 'los', 'y', 'da', 'do'])
+  return nombre
+    .split(/\s+/)
+    .filter((p) => p.length > 0 && !particulas.has(p.toLowerCase()))
+    .slice(0, 2)
+    .map((p) => p[0].toUpperCase())
+    .join('')
+}
+
 function Retrato({ miembro }: { miembro: Miembro }) {
   const esDocente = miembro.rol === 'responsable'
 
@@ -119,9 +135,22 @@ function Retrato({ miembro }: { miembro: Miembro }) {
             className="h-full w-full object-cover"
           />
         ) : (
+          /*
+            Sin fotografía, las iniciales.
+
+            Nueve tarjetas con el mismo icono repetido se leen como un error
+            de carga. Las iniciales hacen que cada tarjeta sea la de alguien,
+            y que la ausencia de foto parezca lo que es —todavía no las hay—
+            y no algo roto.
+          */
           <div className="flex h-full items-center justify-center">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/iconos/ave.png" alt="" className="h-14 w-14 opacity-25" />
+            <span
+              aria-hidden
+              className="text-3xl tracking-wide"
+              style={{ fontFamily: 'var(--font-display)', color: 'var(--color-marca)', opacity: 0.45 }}
+            >
+              {iniciales(miembro.nombre)}
+            </span>
           </div>
         )}
 
@@ -187,7 +216,7 @@ export default async function PaginaEquipo() {
         </h1>
         <p className="mt-6 leading-relaxed" style={{ color: 'var(--color-texto-suave)' }}>
           Estudiantes del Instituto Salesiano Pedro Justo Berrío que salen al campus con un medidor en la
-          mano, y la docente que los acompaña. Todo lo que se ve en este sitio lo hicieron ellos.
+          mano, y las docentes que los acompañan. Todo lo que se ve en este sitio lo hicieron ellos.
         </p>
       </header>
 
