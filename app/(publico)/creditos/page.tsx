@@ -111,6 +111,27 @@ function iniciales(nombre: string): string {
     .join('')
 }
 
+/**
+ * Qué se lee bajo el nombre.
+ *
+ * ── Por qué «Estudiante» no se guarda en la base ─────────────────────────
+ *
+ * Porque ya está en `rol`. Escribirlo también en `grado` significaría que
+ * ascender a alguien a responsable dejaría su tarjeta diciendo «Estudiante»
+ * hasta que alguien se acordara de corregir el otro campo.
+ *
+ * `grado` guarda solo el dato que la base no puede deducir: el curso —«11°»—
+ * o el cargo —«Líder del proyecto»—.
+ */
+function papelDe(miembro: Miembro): string {
+  if (miembro.rol === 'responsable') {
+    // Una tarjeta sin nada bajo el nombre parece incompleta, así que el
+    // texto genérico hace de respaldo cuando no se ha puesto cargo.
+    return miembro.grado ?? 'Docente acompañante'
+  }
+  return miembro.grado ? `Estudiante · ${miembro.grado}` : 'Estudiante'
+}
+
 function Retrato({ miembro }: { miembro: Miembro }) {
   const esDocente = miembro.rol === 'responsable'
 
@@ -154,38 +175,23 @@ function Retrato({ miembro }: { miembro: Miembro }) {
           </div>
         )}
 
-        {/*
-          El cargo va en la insignia, no bajo el nombre.
-
-          «Docente acompañante» describe a cualquiera de ellos y no dice nada
-          de ninguno. Quien lidera el proyecto y quien sostiene la parte
-          técnica hacen cosas distintas, y la página del equipo existe
-          precisamente para decir quién hace qué.
-
-          Se conserva el texto genérico como respaldo: una insignia vacía
-          sería peor que una insignia imprecisa.
-        */}
-        {esDocente && (
-          <span
-            className="absolute left-3 top-3 max-w-[calc(100%-1.5rem)] rounded-full px-2.5 py-1 text-[0.7rem] font-medium leading-tight"
-            style={{ backgroundColor: 'var(--color-crema)', color: 'var(--color-texto)' }}
-          >
-            {miembro.grado ?? 'Docente acompañante'}
-          </span>
-        )}
       </div>
 
       <div className="p-4">
         <h3 className="text-lg leading-tight" style={{ fontFamily: 'var(--font-display)' }}>
           {miembro.nombre}
         </h3>
-        {/* Para un docente ya está arriba, en la insignia. Repetirlo debajo
-            del nombre lo diría dos veces en una tarjeta de cuatro renglones. */}
-        {!esDocente && miembro.grado && (
-          <p className="mt-0.5 text-sm" style={{ color: 'var(--color-marca)' }}>
-            {miembro.grado}
-          </p>
-        )}
+        {/*
+          El papel de cada quien, debajo del nombre.
+
+          Estaba arriba, como insignia flotando sobre la imagen. Tapaba la
+          esquina de la foto —justo donde suele estar la cara— y separaba el
+          nombre de su cargo por toda la altura de la tarjeta, que es
+          exactamente lo que hay que leer junto.
+        */}
+        <p className="mt-0.5 text-sm" style={{ color: 'var(--color-marca)' }}>
+          {papelDe(miembro)}
+        </p>
         {miembro.semblanza && (
           <p
             className="mt-2 text-sm leading-relaxed"
@@ -201,8 +207,6 @@ function Retrato({ miembro }: { miembro: Miembro }) {
 
 export default async function PaginaEquipo() {
   const [equipo, resumen] = await Promise.all([cargarEquipo(), cargarResumen()])
-  const docentes = equipo.filter((m) => m.rol === 'responsable')
-  const estudiantes = equipo.filter((m) => m.rol !== 'responsable')
   const sinAutorizacion = resumen.estudiantes_totales - resumen.estudiantes_visibles
 
   return (
@@ -230,76 +234,55 @@ export default async function PaginaEquipo() {
         </div>
       ) : (
         <>
-          {docentes.length > 0 && (
-            <section className="mt-12">
-              <h2 className="mb-5 text-2xl">Acompañamiento</h2>
-              <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-                {docentes.map((m) => (
-                  <Retrato key={m.id} miembro={m} />
-                ))}
-              </ul>
-            </section>
-          )}
+          {/*
+            ── Una sola cuadrícula, no dos secciones ──────────────────────
+
+            Antes iban separados: «Acompañamiento» arriba y «Estudiantes»
+            abajo. Sobre el papel es un orden razonable; en la pantalla
+            partía en dos un equipo que trabaja junto, y dejaba a dos
+            docentes solas en una fila de cuatro huecos.
+
+            Quien hace qué se lee ahora en cada tarjeta, bajo el nombre, que
+            es donde se busca. El orden sigue poniendo delante a quien
+            coordina —`orden_equipo` de la migración 0015—, sin necesidad de
+            un titular que lo anuncie.
+          */}
+          <ul className="mt-12 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            {equipo.map((m) => (
+              <Retrato key={m.id} miembro={m} />
+            ))}
+          </ul>
 
           {/*
-            ── El recuento dice el equipo REAL, no el publicable ──────────
-
-            Antes esta sección desaparecía entera cuando ningún estudiante
-            tenía autorización registrada. La página quedaba mostrando cuatro
-            docentes y nada más, y quien la abría concluía que el proyecto lo
-            hacen los adultos —exactamente lo contrario de la verdad—.
-
-            Ahora el número del encabezado es el total y, debajo, se explica
-            por qué faltan nombres. Reconocer que existen no publica nada de
-            ellos: un recuento no identifica a nadie.
+            Si alguien retira su autorización, su nombre desaparece de la
+            cuadrícula y este párrafo lo reconoce sin nombrarlo. Un recuento
+            no identifica a nadie.
           */}
-          {resumen.estudiantes_totales > 0 && (
-            <section className="mt-14">
-              <h2 className="mb-5 text-2xl">
-                Estudiantes
-                <span
-                  className="ml-3 text-base font-normal"
-                  style={{ color: 'var(--color-texto-suave)' }}
-                >
-                  {resumen.estudiantes_totales}
-                </span>
-              </h2>
-
-              {estudiantes.length > 0 && (
-                <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-                  {estudiantes.map((m) => (
-                    <Retrato key={m.id} miembro={m} />
-                  ))}
-                </ul>
-              )}
-
-              {sinAutorizacion > 0 && (
-                <div
-                  className={`${estudiantes.length > 0 ? 'mt-4' : ''} rounded-[--radius-suave] border border-dashed p-6`}
-                  style={{ borderColor: 'var(--color-salvia)' }}
-                >
-                  <p className="leading-relaxed">
-                    <strong>
-                      {sinAutorizacion === 1
-                        ? 'Un estudiante más sostiene'
-                        : `${sinAutorizacion} estudiantes más sostienen`}{' '}
-                      este proyecto.
-                    </strong>{' '}
-                    {sinAutorizacion === 1 ? 'Su nombre aparecerá' : 'Sus nombres aparecerán'} aquí
-                    cuando su acudiente lo autorice por escrito. Casi todos son menores de edad, y
-                    publicar el nombre o la cara de un menor sin ese permiso no es algo que este
-                    proyecto vaya a hacer.
-                  </p>
-                  <p
-                    className="mt-3 text-sm leading-relaxed"
-                    style={{ color: 'var(--color-texto-suave)' }}
-                  >
-                    Mientras tanto, su trabajo sí está publicado: las fichas y las mediciones que
-                    se ven en este sitio son suyas.
-                  </p>
-                </div>
-              )}
-            </section>
+          {sinAutorizacion > 0 && (
+            <div
+              className="mt-6 rounded-[--radius-suave] border border-dashed p-6"
+              style={{ borderColor: 'var(--color-salvia)' }}
+            >
+              <p className="leading-relaxed">
+                <strong>
+                  {sinAutorizacion === 1
+                    ? 'Un estudiante más sostiene'
+                    : `${sinAutorizacion} estudiantes más sostienen`}{' '}
+                  este proyecto.
+                </strong>{' '}
+                {sinAutorizacion === 1 ? 'Su nombre aparecerá' : 'Sus nombres aparecerán'} aquí
+                cuando su acudiente lo autorice por escrito. Casi todos son menores de edad, y
+                publicar el nombre o la cara de un menor sin ese permiso no es algo que este
+                proyecto vaya a hacer.
+              </p>
+              <p
+                className="mt-3 text-sm leading-relaxed"
+                style={{ color: 'var(--color-texto-suave)' }}
+              >
+                Mientras tanto, su trabajo sí está publicado: las fichas y las mediciones que se
+                ven en este sitio son suyas.
+              </p>
+            </div>
           )}
         </>
       )}
