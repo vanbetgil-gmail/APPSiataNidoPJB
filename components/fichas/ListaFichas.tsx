@@ -42,6 +42,7 @@ export function ListaFichas({
 }) {
   const [reino, setReino] = useState<Reino | null>(null)
   const [estado, setEstado] = useState<FiltroEstado>('todas')
+  const [soloSinUbicar, setSoloSinUbicar] = useState(false)
 
   const filtrables = useMemo(
     () =>
@@ -49,6 +50,7 @@ export function ListaFichas({
         id: e.ficha.id,
         categoria: e.categoria,
         estado: e.ficha.estado,
+        puntoMapaId: e.ficha.punto_mapa_id,
       })),
     [entradas]
   )
@@ -57,12 +59,18 @@ export function ListaFichas({
     () =>
       entradas.filter((e) =>
         coincideConFiltros(
-          { id: e.ficha.id, categoria: e.categoria, estado: e.ficha.estado },
+          {
+            id: e.ficha.id,
+            categoria: e.categoria,
+            estado: e.ficha.estado,
+            puntoMapaId: e.ficha.punto_mapa_id,
+          },
           reino,
-          estado
+          estado,
+          soloSinUbicar
         )
       ),
-    [entradas, reino, estado]
+    [entradas, reino, estado, soloSinUbicar]
   )
 
   return (
@@ -71,8 +79,10 @@ export function ListaFichas({
         fichas={filtrables}
         reino={reino}
         estado={estado}
+        soloSinUbicar={soloSinUbicar}
         onReino={setReino}
         onEstado={setEstado}
+        onSoloSinUbicar={setSoloSinUbicar}
       />
 
       <p aria-live="polite" className="text-sm" style={{ color: 'var(--color-texto-suave)' }}>

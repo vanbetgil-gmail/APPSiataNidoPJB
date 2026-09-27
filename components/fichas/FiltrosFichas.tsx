@@ -22,6 +22,8 @@ export interface FichaFiltrable {
   id: string
   categoria: string | null
   estado: EstadoFicha
+  /** Nulo si la ficha no tiene punto marcado en el mapa. */
+  puntoMapaId: string | null
 }
 
 export type FiltroEstado = 'todas' | 'publicadas' | 'por_verificar' | 'borradores'
@@ -37,9 +39,11 @@ const ESTADOS: { clave: FiltroEstado; etiqueta: string; corresponde: (e: EstadoF
 export function coincideConFiltros(
   ficha: FichaFiltrable,
   reino: Reino | null,
-  estado: FiltroEstado
+  estado: FiltroEstado,
+  soloSinUbicar = false
 ): boolean {
   if (reino && reinoDeCategoria(ficha.categoria) !== reino) return false
+  if (soloSinUbicar && ficha.puntoMapaId !== null) return false
   const def = ESTADOS.find((e) => e.clave === estado)
   return def ? def.corresponde(ficha.estado) : true
 }
@@ -48,14 +52,18 @@ export function FiltrosFichas({
   fichas,
   reino,
   estado,
+  soloSinUbicar,
   onReino,
   onEstado,
+  onSoloSinUbicar,
 }: {
   fichas: FichaFiltrable[]
   reino: Reino | null
   estado: FiltroEstado
+  soloSinUbicar: boolean
   onReino: (r: Reino | null) => void
   onEstado: (e: FiltroEstado) => void
+  onSoloSinUbicar: (v: boolean) => void
 }) {
   const grupos = useMemo(() => {
     const cuenta = new Map<Reino, number>()
@@ -79,6 +87,8 @@ export function FiltrosFichas({
       n: cuenta.get(r.reino) ?? 0,
     }))
   }, [fichas])
+
+  const sinUbicar = useMemo(() => fichas.filter((f) => f.puntoMapaId === null).length, [fichas])
 
   const conteoEstado = useMemo(() => {
     const m = new Map<FiltroEstado, number>()
@@ -110,6 +120,21 @@ export function FiltrosFichas({
             {e.etiqueta} ({conteoEstado.get(e.clave) ?? 0})
           </Chip>
         ))}
+
+        {/*
+          «Sin ubicar» junto a los estados, pero es otra cosa: se combina con
+          ellos en vez de sustituirlos.
+
+          Existe porque una ficha sin punto desaparece del mapa en silencio.
+          Con veintisiete fichas, encontrar cuáles faltan abriéndolas una por
+          una es el tipo de tarea que nadie hace, y por eso el mapa lleva
+          meses mostrando menos de la mitad de lo documentado.
+        */}
+        {sinUbicar > 0 && (
+          <Chip activo={soloSinUbicar} onClick={() => onSoloSinUbicar(!soloSinUbicar)} tenue>
+            ◍ Sin ubicar ({sinUbicar})
+          </Chip>
+        )}
       </div>
     </div>
   )

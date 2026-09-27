@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useMemo, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { Map as MapaLeaflet } from 'leaflet'
 import type { FichaPublica, PuntoDestacadoPublico } from '@/lib/supabase/tipos'
@@ -38,6 +39,24 @@ export function MapaExplorador({
     [fichas, seleccionadas]
   )
 
+  /*
+   * ── Cuántas fichas NO se pueden dibujar ──────────────────────────────
+   *
+   * Una ficha sin punto marcado desaparece del mapa sin decir nada. Con
+   * veintiuna publicadas y nueve ubicadas, quien abre el mapa cuenta los
+   * puntos, los compara con lo que el equipo ha documentado y concluye que
+   * la aplicación perdió registros.
+   *
+   * No los perdió: están en el catálogo, completos. Lo que les falta es que
+   * alguien toque el mapa para decir dónde estaban. Decirlo en voz alta
+   * convierte un fallo aparente en una tarea concreta.
+   */
+  const ubicadas = useMemo(
+    () => visibles.filter((f) => typeof f.latitud === 'number' && typeof f.longitud === 'number'),
+    [visibles]
+  )
+  const sinUbicar = visibles.length - ubicadas.length
+
   const alternar = useCallback((categoria: string) => {
     setSeleccionadas((previas) => {
       const siguiente = new Set(previas)
@@ -73,6 +92,20 @@ export function MapaExplorador({
           totalVisible={visibles.length}
           totalGeneral={fichas.length}
         />
+
+        {sinUbicar > 0 && (
+          <p className="text-sm leading-relaxed" style={{ color: 'var(--color-texto-suave)' }}>
+            <strong style={{ color: 'var(--color-texto)' }}>
+              {ubicadas.length} de {visibles.length}
+            </strong>{' '}
+            {visibles.length === 1 ? 'ficha está ubicada' : 'fichas están ubicadas'} en el mapa. Las{' '}
+            {sinUbicar} restantes están documentadas pero todavía sin punto marcado:{' '}
+            <Link href="/biodiversidad" className="text-[color:var(--color-marca)]">
+              se pueden ver en Biodiversidad
+            </Link>
+            .
+          </p>
+        )}
       </div>
 
       <div className="relative min-h-[60vh] flex-1">

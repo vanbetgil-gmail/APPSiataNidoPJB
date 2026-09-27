@@ -24,7 +24,17 @@
  * y adivinar. `IMG_20260903_101245.jpg` no dice nada; `guayacan-hall-01.jpg`
  * lo dice todo. Cuesta lo mismo escribirlo al subir que descifrarlo después.
  */
-export function AvisoRegistroFotografico({ url }: { url: string | null }) {
+export function AvisoRegistroFotografico({
+  url,
+  sinFoto,
+  total,
+}: {
+  url: string | null
+  /** Cuántas fichas siguen sin ninguna fotografía. */
+  sinFoto?: number
+  /** Cuántas fichas hay en total. */
+  total?: number
+}) {
   return (
     <section
       className="rounded-[--radius-suave] border p-6"
@@ -42,10 +52,39 @@ export function AvisoRegistroFotografico({ url }: { url: string | null }) {
             Registro fotográfico de las especies PJB
           </h2>
 
+          {/*
+            ── El texto cuenta lo que hay, no lo que había ─────────────────
+
+            Decía «ninguna especie tiene fotografía», escrito cuando era
+            cierto. Ya hay treinta y cuatro fotos asociadas, así que el aviso
+            había pasado de informar a desmentir la propia pantalla: debajo
+            se ven las fichas con su foto y encima un párrafo negando que
+            existan.
+
+            Un aviso que contradice lo que el usuario está viendo enseña a no
+            leer los avisos.
+          */}
           <p className="mt-3 max-w-prose text-sm leading-relaxed">
-            Las fichas de abajo todavía muestran una ilustración porque ninguna especie tiene
-            fotografía. Suban las suyas a la carpeta compartida del proyecto y desde ahí las vamos
-            asociando a cada ficha.
+            {sinFoto === undefined || total === undefined ? (
+              <>
+                Suban las fotografías a la carpeta compartida del proyecto y desde ahí las vamos
+                asociando a cada ficha.
+              </>
+            ) : sinFoto === 0 ? (
+              <>
+                <strong>Todas las fichas tienen fotografía.</strong> Si toman una mejor, súbanla a
+                la carpeta compartida y la cambiamos.
+              </>
+            ) : (
+              <>
+                <strong>
+                  {sinFoto} de {total} fichas
+                </strong>{' '}
+                siguen mostrando una ilustración porque todavía no tienen fotografía. Suban las
+                suyas a la carpeta compartida del proyecto y desde ahí las vamos asociando a cada
+                ficha.
+              </>
+            )}
           </p>
 
           <div className="mt-4">

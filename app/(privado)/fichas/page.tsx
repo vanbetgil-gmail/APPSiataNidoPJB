@@ -119,7 +119,11 @@ export default async function PaginaClasificacionTaxonomica() {
         en el repositorio, que es público.
       */}
       <div className="mt-7">
-        <AvisoRegistroFotografico url={process.env.CARPETA_FOTOS_URL ?? null} />
+        <AvisoRegistroFotografico
+          url={process.env.CARPETA_FOTOS_URL ?? null}
+          sinFoto={fichas.filter((f) => (fotosPorFicha.get(f.id) ?? 0) === 0).length}
+          total={fichas.length}
+        />
       </div>
 
       {enRevision.length > 0 && (
