@@ -207,6 +207,9 @@ const LUGARES: Record<string, string> = {
   'taller - mecanica automotriz': 'Taller de Mecánica Automotriz',
   'desarrollo de software': 'Taller de Desarrollo de Software',
   'artes graficas': 'Artes Gráficas',
+  // Las dos formas en que se puede acabar llamando en el formulario.
+  'san jose': 'Hall San José',
+  'hall san jose': 'Hall San José',
 }
 
 function turnoDeLaHora(texto: string): 'mediodia' | 'tarde' | null {
