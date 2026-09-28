@@ -372,6 +372,23 @@ async function main() {
   const iCorreo = cabeceras.findIndex((c) => c.includes('correo'))
   const iMarca = cabeceras.findIndex((c) => c.includes('marca temporal') || c.includes('timestamp'))
 
+  /*
+   * ── La fecha escrita a mano, si existe ─────────────────────────────
+   *
+   * El formulario original no pregunta qué día se midió: se conforma con la
+   * marca temporal, la hora de envío que Google añade sola. Eso vale
+   * mientras se envíe al salir del taller y deja de valer en cuanto alguien
+   * pasa a limpio un atraso.
+   *
+   * Si existe una columna «Fecha de la medición» —como pregunta del
+   * formulario o escrita a mano en la hoja— manda esa: es la única que dice
+   * de verdad cuándo se midió. Y entonces se cree lo que diga, porque una
+   * persona que escribe un sábado sabe lo que escribe.
+   */
+  const iFecha = cabeceras.findIndex(
+    (c) => c.includes('fecha de la medicion') || c.includes('fecha de medicion')
+  )
+
   if (iLugar === -1 || iMedidor === -1) {
     console.error('✖ Faltan las columnas de lugar o de medidor.\n')
     process.exitCode = 1
@@ -413,9 +430,14 @@ async function main() {
     return
   }
 
-  const extras = cabeceras.length - (iLugar + 2)
+  const extras = cabeceras.length - (iLugar + 2) - (iFecha > iLugar ? 1 : 0)
   console.log(`  ✓ Las ${MAXIMO_MEDICIONES} secciones y sus ${VARIABLES.length} variables están en su sitio.`)
   if (extras > 0) console.log(`    (${extras} columnas después del medidor: se ignoran)`)
+  console.log(
+    iFecha === -1
+      ? '  ⚠️  No hay columna «Fecha de la medición»: se usará la hora de envío.'
+      : `  ✓ Hay columna «Fecha de la medición»: manda sobre la hora de envío.`
+  )
   console.log()
 
   // -------------------------------------------------------------------------
@@ -499,9 +521,17 @@ async function main() {
       return
     }
 
-    const marca = marcaTemporal(iMarca === -1 ? '' : (fila[iMarca] ?? ''))
+    // La fecha escrita a mano manda sobre la hora de envío.
+    const declarada =
+      iFecha === -1
+        ? { iso: null, minutos: null, ambigua: false }
+        : marcaTemporal(fila[iFecha] ?? '')
+    const envio = marcaTemporal(iMarca === -1 ? '' : (fila[iMarca] ?? ''))
+    const marca = declarada.iso ? declarada : envio
+    const fechaEsDeclarada = declarada.iso !== null
+
     if (!marca.iso) {
-      descartes.push(`renglón ${renglon}: no se pudo leer la marca temporal`)
+      descartes.push(`renglón ${renglon}: no se pudo leer ninguna fecha`)
       return
     }
     if (marca.ambigua) fechasAmbiguas++
@@ -588,19 +618,28 @@ async function main() {
     // ser una salida extraordinaria y hay que creerle. Cuando la fecha la
     // pone un sello de envío, un sábado significa que alguien se sentó el
     // fin de semana a pasar a limpio: el dato es bueno, la fecha no.
-    const coherente = envioCoherente(turno, marca.minutos)
-    if (!coherente.ok) {
-      fechaNoFiable.push(
-        `renglón ${renglon}: ${resumen} — ${coherente.motivo} (${nombreDelDia(marca.iso)})`
-      )
-      return
-    }
+    if (fechaEsDeclarada) {
+      // Alguien la escribió. Se le cree; como mucho se avisa.
+      if (!esDiaDeMedicion(marca.iso)) {
+        avisos.push(
+          `renglón ${renglon}: ${marca.iso} es ${nombreDelDia(marca.iso)}, y se mide miércoles y viernes`
+        )
+      }
+    } else {
+      const coherente = envioCoherente(turno, envio.minutos)
+      if (!coherente.ok) {
+        fechaNoFiable.push(
+          `renglón ${renglon}: ${resumen} — ${coherente.motivo} (${nombreDelDia(marca.iso)})`
+        )
+        return
+      }
 
-    if (!esDiaDeMedicion(marca.iso)) {
-      fechaNoFiable.push(
-        `renglón ${renglon}: ${resumen} — se envió un ${nombreDelDia(marca.iso)}, y se mide miércoles y viernes`
-      )
-      return
+      if (!esDiaDeMedicion(marca.iso)) {
+        fechaNoFiable.push(
+          `renglón ${renglon}: ${resumen} — se envió un ${nombreDelDia(marca.iso)}, y se mide miércoles y viernes`
+        )
+        return
+      }
     }
 
     nuevas.push({
@@ -635,8 +674,10 @@ async function main() {
     for (const f of fechaNoFiable.slice(0, 25)) console.log(`    · ${f}`)
     if (fechaNoFiable.length > 25) console.log(`    … y ${fechaNoFiable.length - 25} más`)
     console.log('\n  Para recuperarlas hay que saber el día real de cada una.')
-    console.log('  Lo más sencillo: añadir al formulario una pregunta «Fecha de')
-    console.log('  la medición» y volver a exportar.')
+    console.log('  Lo más sencillo: en la hoja de respuestas, añadir una columna')
+    console.log('  llamada «Fecha de la medición», escribir ahí el día de cada')
+    console.log('  renglón y volver a exportar. Este script la usará en lugar de')
+    console.log('  la hora de envío.')
   }
 
   if (repetidas.length > 0) {
