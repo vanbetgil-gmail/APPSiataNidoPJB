@@ -2,48 +2,55 @@
  * SIATA PJB — importa las respuestas del formulario de Google.
  *
  * Se ejecuta con:
- *   pnpm importar-formulario "ruta/al/archivo.csv"            (solo mira)
+ *   pnpm importar-formulario "ruta/al/archivo.csv"             (solo mira)
  *   pnpm importar-formulario "ruta/al/archivo.csv" --confirmar (escribe)
  *
  * ── Qué formulario ───────────────────────────────────────────────────────
  *
- * «MEDICIONES PARA LOS MEDIDORES DE LUIS». Cada respuesta es una jornada
- * completa: siete mediciones de diez variables, más el lugar y el medidor al
- * final.
+ * «MEDICIONES PARA LOS MEDIDORES DE LUIS». Cada respuesta es una jornada:
+ * siete mediciones de diez variables, más el lugar y el medidor al final.
  *
  * Para sacar el archivo: en el formulario, pestaña **Respuestas** → el icono
  * verde de hoja de cálculo → en la hoja, **Archivo → Descargar → CSV**.
  *
  * ── Por qué lee por POSICIÓN y no por nombre de columna ──────────────────
  *
- * Porque las siete secciones del formulario repiten las mismas diez
- * preguntas, palabra por palabra. Google exporta esas cabeceras tal cual, así
- * que hay siete columnas llamadas «PM2.5 ( µg/ m³)» y buscar por nombre
- * devolvería siempre la primera.
+ * Porque las siete secciones repiten las mismas diez preguntas, palabra por
+ * palabra, y Google exporta esas cabeceras tal cual. Hay siete columnas
+ * llamadas «PM2.5», y buscar por nombre devolvería siempre la primera.
  *
- * Lo que sí es fiable es el orden: hora y diez variables, siete veces
- * seguidas. El script localiza los bloques contando columnas y ADEMÁS
- * comprueba que cada cabecera diga lo que debe decir. Si el formulario cambia,
- * se detiene en vez de importar datos corridos una columna.
+ * Lo fiable es el orden. El script cuenta columnas y ADEMÁS comprueba que
+ * cada cabecera diga lo que debe decir; si el formulario cambia, se detiene
+ * en vez de importar datos corridos una columna.
  *
- * ── Por qué no escribe salvo que se le pida ──────────────────────────────
+ * ── Las tres cosas que este script se niega a hacer ──────────────────────
  *
- * Porque una importación mal entendida ensucia el histórico de forma difícil
- * de deshacer. Sin `--confirmar` enseña exactamente qué haría —cuántas
- * jornadas, cuántas mediciones, qué filas descarta y por qué— y no toca nada.
+ * 1. **Duplicar una jornada que ya está.** Las quince respuestas de 2025 ya
+ *    entraron por `migrar-historico`, desde el Excel que salió de este mismo
+ *    formulario. Se reconocen por su clave natural —fecha, lugar y medidor—
+ *    y se saltan.
+ *
+ * 2. **Fiarse de la marca temporal cuando no puede ser la fecha de la
+ *    medición.** El formulario no pregunta qué día se midió: usa la hora de
+ *    envío. Eso funciona si se envía al salir del taller, y falla cuando
+ *    alguien se sienta un sábado por la noche a pasar a limpio un mes de
+ *    anotaciones. Una jornada que empieza a las 12:00 y se envía a las 22:51
+ *    no se midió ese día.
+ *
+ * 3. **Escribir sin que se lo pidan.** Sin `--confirmar` enseña exactamente
+ *    qué haría y no toca nada.
  *
  * ── Repetir la importación es inofensivo ─────────────────────────────────
  *
- * Los identificadores se DERIVAN de la clave natural (fecha, turno, lugar,
- * medidor y número de medición), igual que en `migrar-historico`. Volver a
- * ejecutarlo escribe las mismas filas con los mismos identificadores en vez
- * de duplicarlas.
+ * Los identificadores se DERIVAN de la clave natural, igual que en
+ * `migrar-historico`: volver a ejecutarlo escribe las mismas filas con los
+ * mismos identificadores en vez de duplicarlas.
  */
 
 import { readFileSync } from 'node:fs'
 import { createClient } from '@supabase/supabase-js'
-import { RANGOS, validarValor } from '../lib/validacion/rangos'
-import { MAXIMO_MEDICIONES, aISO, esDiaDeMedicion, horaDelTurno } from '../lib/mediciones/ritmo'
+import { validarValor } from '../lib/validacion/rangos'
+import { MAXIMO_MEDICIONES, esDiaDeMedicion, horaDelTurno, nombreDelDia } from '../lib/mediciones/ritmo'
 
 // ---------------------------------------------------------------------------
 // Entorno
@@ -82,9 +89,9 @@ const supabase = createClient(URL, CLAVE, {
 /**
  * Analizador de CSV que respeta las comillas.
  *
- * Hace falta de verdad: el nombre de un lugar puede llevar coma, y un campo
- * entrecomillado puede contener saltos de línea. Partir por comas a secas
- * desplazaría todas las columnas de esa fila sin dar ningún error.
+ * Hace falta: un nombre de lugar puede llevar coma, y un campo entrecomillado
+ * puede contener saltos de línea. Partir por comas a secas desplazaría todas
+ * las columnas de esa fila sin dar ningún error.
  */
 function leerCsv(texto: string): string[][] {
   const filas: string[][] = []
@@ -92,7 +99,6 @@ function leerCsv(texto: string): string[][] {
   let campo = ''
   let entreComillas = false
 
-  // El BOM de Excel, si está, se lleva por delante la primera cabecera.
   const t = texto.replace(/^\uFEFF/, '')
 
   for (let i = 0; i < t.length; i++) {
@@ -125,10 +131,9 @@ function leerCsv(texto: string): string[][] {
     filas.push(fila)
   }
 
-  return filas.filter((f) => f.some((c) => c.trim() !== ''))
+  return filas
 }
 
-/** Sin tildes, sin mayúsculas, sin espacios de más. Para comparar nombres. */
 function plegar(texto: string): string {
   return texto
     .normalize('NFD')
@@ -138,21 +143,42 @@ function plegar(texto: string): string {
     .trim()
 }
 
+/**
+ * Convierte a número lo que se escribió a mano en el formulario.
+ *
+ * ── Lo que hay de verdad en estas casillas ───────────────────────────────
+ *
+ * `40%`, `32c`, `0,001`, `3,5`, `.`, y también celdas vacías. La gente
+ * escribe la unidad aunque la pregunta ya la diga, y escribe con coma
+ * decimal porque así se escribe en español.
+ *
+ * Se recorta todo lo que no sea cifra, coma, punto o signo, y la coma pasa
+ * a punto. `40%` queda en 40, que es lo correcto: la pregunta pide un
+ * porcentaje, así que 40 % ES cuarenta.
+ *
+ * ── Por qué esto importa más de lo que parece ────────────────────────────
+ *
+ * En Excel una celda con «40%» guarda por dentro el número 0,4. La
+ * importación anterior leyó ese valor interno y dejó un tercio de las
+ * humedades divididas por cien (migración 0020). Aquí se lee el texto del
+ * formulario, donde 40 % es «40%», y ese error no puede repetirse.
+ */
+function aNumero(texto: string): number | null {
+  const t = (texto ?? '').trim()
+  if (!t) return null
+
+  const limpio = t.replace(/[^0-9,.\-]/g, '').replace(',', '.')
+  if (!limpio || limpio === '.' || limpio === '-') return null
+
+  const n = Number(limpio)
+  return Number.isFinite(n) ? n : null
+}
+
 // ---------------------------------------------------------------------------
 // La forma del formulario
 // ---------------------------------------------------------------------------
 
-/**
- * Las diez variables, EN EL ORDEN DEL FORMULARIO.
- *
- * Coincide con el de `RANGOS`, y no por casualidad: ese orden se tomó del
- * medidor. Aun así se escribe aquí aparte, con la palabra que usa el
- * formulario, para que el script pueda comprobar cabecera por cabecera.
- *
- * `TOVC` es como está escrito en el formulario. El nombre correcto es TVOC
- * —compuestos orgánicos volátiles totales— y así aparece en la aplicación;
- * aquí se acepta la grafía del formulario para poder leerlo.
- */
+/** Las diez variables, en el orden del formulario. `TOVC` es su grafía; el término correcto es TVOC. */
 const VARIABLES: { columna: string; clave: string }[] = [
   { columna: 'pm1', clave: 'pm1' },
   { columna: 'pm2.5', clave: 'pm25' },
@@ -167,25 +193,22 @@ const VARIABLES: { columna: string; clave: string }[] = [
 ]
 
 /**
- * Los nombres del formulario y los del catálogo de la aplicación.
+ * Los nombres del formulario y los del catálogo.
  *
  * No coinciden, y no tienen por qué: el formulario dice «Op» y «Taller -
- * Mecánica industrial»; el catálogo, «Taller Operación de Eventos» y «Taller
- * de Mecánica Industrial». Esta tabla es la traducción, y está escrita porque
+ * Mecánica industrial». Esta tabla es la traducción, escrita a mano porque
  * adivinarla con parecidos de texto es la clase de atajo que un día asigna
  * treinta mediciones al taller equivocado.
  */
 const LUGARES: Record<string, string> = {
-  'ebanisteria': 'Ebanistería',
-  'op': 'Taller Operación de Eventos',
+  ebanisteria: 'Ebanistería',
+  op: 'Taller Operación de Eventos',
   'taller - mecanica industrial': 'Taller de Mecánica Industrial',
   'taller - mecanica automotriz': 'Taller de Mecánica Automotriz',
   'desarrollo de software': 'Taller de Desarrollo de Software',
-  'desarrollo de software ': 'Taller de Desarrollo de Software',
   'artes graficas': 'Artes Gráficas',
 }
 
-/** `(12:00pm)` → mediodía · `(2:00pm)` → tarde. */
 function turnoDeLaHora(texto: string): 'mediodia' | 'tarde' | null {
   const t = plegar(texto)
   if (/^\(?12:/.test(t) || /^\(?1:/.test(t)) return 'mediodia'
@@ -193,44 +216,84 @@ function turnoDeLaHora(texto: string): 'mediodia' | 'tarde' | null {
   return null
 }
 
+interface MarcaTemporal {
+  iso: string | null
+  minutos: number | null
+  ambigua: boolean
+}
+
 /**
- * `27/09/2026 12:34:56` o `2026-09-27 …` → `2026-09-27`.
+ * `27/09/2026 19:15:01` → fecha y hora del ENVÍO.
  *
- * Google escribe la marca temporal en el formato de la configuración
- * regional de la hoja. En español de Colombia es día/mes/año, que es
- * indistinguible de mes/día/año hasta el día 13. Se asume día primero
- * —es lo que produce una hoja en español— y se avisa cuando el día es
- * ambiguo y el mes no.
+ * Se asume día/mes/año, que es lo que produce una hoja en español. Cuando el
+ * día es 12 o menor la lectura es ambigua y se avisa.
  */
-function fechaDeMarcaTemporal(texto: string): { iso: string | null; ambigua: boolean } {
-  const t = texto.trim()
+function marcaTemporal(texto: string): MarcaTemporal {
+  const t = (texto ?? '').trim()
+  const vacia: MarcaTemporal = { iso: null, minutos: null, ambigua: false }
+  if (!t) return vacia
 
-  const iso = t.match(/^(\d{4})-(\d{2})-(\d{2})/)
-  if (iso) return { iso: `${iso[1]}-${iso[2]}-${iso[3]}`, ambigua: false }
+  const m = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/)
+  if (!m) {
+    const iso = t.match(/^(\d{4})-(\d{2})-(\d{2})(?:\s+(\d{1,2}):(\d{2}))?/)
+    if (!iso) return vacia
+    return {
+      iso: `${iso[1]}-${iso[2]}-${iso[3]}`,
+      minutos: iso[4] ? Number(iso[4]) * 60 + Number(iso[5]) : null,
+      ambigua: false,
+    }
+  }
 
-  const dmy = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/)
-  if (!dmy) return { iso: null, ambigua: false }
-
-  const [, a, b, anio] = dmy
-  const dia = Number(a)
-  const mes = Number(b)
-  if (mes > 12) return { iso: null, ambigua: false }
+  const dia = Number(m[1])
+  const mes = Number(m[2])
+  if (mes > 12) return vacia
 
   return {
-    iso: `${anio}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`,
+    iso: `${m[3]}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`,
+    minutos: m[4] ? Number(m[4]) * 60 + Number(m[5]) : null,
     ambigua: dia <= 12,
   }
 }
 
-function aNumero(texto: string): number | null {
-  const t = texto.trim().replace(',', '.')
-  if (t === '') return null
-  const n = Number(t)
-  return Number.isNaN(n) ? null : n
+/** `13:00` → 780. Para comparar horas sin construir fechas. */
+function enMinutos(hhmm: string): number {
+  const [h, m] = hhmm.split(':').map(Number)
+  return h * 60 + m
 }
 
-// ---------------------------------------------------------------------------
-// Identificadores derivados de la clave natural
+/**
+ * ¿Puede la marca temporal ser la fecha en que se midió?
+ *
+ * El formulario no pregunta el día: usa la hora de envío. Eso vale mientras
+ * se envíe al salir del taller. Deja de valer en cuanto alguien pasa a limpio
+ * un mes de anotaciones, y entonces todas esas jornadas se archivan el día
+ * equivocado sin que nada avise.
+ *
+ * La comprobación es sencilla y basta: el envío tiene que caer entre la
+ * primera lectura y tres horas después de la última. Una jornada que empieza
+ * a las 12:00 y se envía a las 22:51 no se midió ese día.
+ */
+const MARGEN_MINUTOS = 180
+
+function envioCoherente(
+  turno: 'mediodia' | 'tarde',
+  minutosEnvio: number | null
+): { ok: boolean; motivo: string } {
+  if (minutosEnvio === null) return { ok: true, motivo: '' }
+
+  const primera = enMinutos(horaDelTurno(turno, 1)!)
+  const ultima = enMinutos(horaDelTurno(turno, MAXIMO_MEDICIONES)!)
+
+  if (minutosEnvio < primera) {
+    return { ok: false, motivo: 'se envió ANTES de la primera lectura' }
+  }
+  if (minutosEnvio > ultima + MARGEN_MINUTOS) {
+    const horas = Math.round(((minutosEnvio - ultima) / 60) * 10) / 10
+    return { ok: false, motivo: `se envió ${horas} h después de la última lectura` }
+  }
+  return { ok: true, motivo: '' }
+}
+
 // ---------------------------------------------------------------------------
 function uuidDeterminista(texto: string): string {
   let h1 = 0x811c9dc5
@@ -255,27 +318,6 @@ function uuidDeterminista(texto: string): string {
 }
 
 // ---------------------------------------------------------------------------
-interface FilaJornada {
-  id: string
-  fecha: string
-  turno: 'mediodia' | 'tarde'
-  lugar_id: string
-  medidor_id: string
-  integrante_id: string | null
-  origen: 'importacion'
-  cerrada: boolean
-}
-
-interface FilaMedicion {
-  id: string
-  jornada_id: string
-  numero: number
-  hora: string
-  dato_dudoso: boolean
-  nota_dudoso: string | null
-  [clave: string]: unknown
-}
-
 async function main() {
   const ruta = process.argv[2]
   const confirmar = process.argv.includes('--confirmar')
@@ -308,32 +350,45 @@ async function main() {
   }
 
   const cabeceras = filas[0].map(plegar)
-  const respuestas = filas.slice(1)
+  const respuestas = filas.slice(1).filter((f) => f.some((c) => c.trim() !== ''))
 
   console.log(`  archivo   : ${ruta}`)
   console.log(`  columnas  : ${cabeceras.length}`)
   console.log(`  respuestas: ${respuestas.length}\n`)
 
   // -------------------------------------------------------------------------
-  // Localizar los siete bloques
+  // Localizar las columnas
+  //
+  // El corte es «Lugar de medición»: todo lo que viene antes son las siete
+  // secciones de mediciones. Después puede haber de todo —la puntuación que
+  // añade Google, columnas escritas a mano en la hoja, incluso los restos de
+  // una octava sección abandonada— y nada de eso se mira.
   // -------------------------------------------------------------------------
+  const iLugar = cabeceras.findIndex((c) => c.includes('lugar de medicion'))
+  const iMedidor = cabeceras.findIndex((c) => c.includes('numero de serie'))
+  const iCorreo = cabeceras.findIndex((c) => c.includes('correo'))
+  const iMarca = cabeceras.findIndex((c) => c.includes('marca temporal') || c.includes('timestamp'))
+
+  if (iLugar === -1 || iMedidor === -1) {
+    console.error('✖ Faltan las columnas de lugar o de medidor.\n')
+    process.exitCode = 1
+    return
+  }
+
   const horas: number[] = []
   cabeceras.forEach((c, i) => {
-    if (c.includes('hora de medicion')) horas.push(i)
+    if (i < iLugar && c.includes('hora de medicion')) horas.push(i)
   })
 
   if (horas.length !== MAXIMO_MEDICIONES) {
     console.error(
-      `✖ Se esperaban ${MAXIMO_MEDICIONES} columnas «Hora de medición» y hay ${horas.length}.`
+      `✖ Se esperaban ${MAXIMO_MEDICIONES} secciones de medición y hay ${horas.length}.`
     )
     console.error('  El formulario cambió. Revíselo antes de importar.\n')
     process.exitCode = 1
     return
   }
 
-  // Cada bloque: la hora y las diez variables que la siguen. Se comprueba
-  // cabecera por cabecera: si el formulario cambió de orden, este script se
-  // detiene en vez de escribir columnas corridas.
   const desajustes: string[] = []
   for (const [bloque, inicio] of horas.entries()) {
     VARIABLES.forEach((v, j) => {
@@ -355,87 +410,118 @@ async function main() {
     return
   }
 
-  const iLugar = cabeceras.findIndex((c) => c.includes('lugar de medicion'))
-  const iMedidor = cabeceras.findIndex((c) => c.includes('numero de serie'))
-  const iCorreo = cabeceras.findIndex((c) => c.includes('correo'))
-  const iMarca = cabeceras.findIndex((c) => c.includes('marca temporal') || c.includes('timestamp'))
-
-  if (iLugar === -1 || iMedidor === -1) {
-    console.error('✖ Faltan las columnas de lugar o de medidor.\n')
-    process.exitCode = 1
-    return
-  }
-
-  console.log('  ✓ Las siete secciones y sus diez variables están en su sitio.\n')
+  const extras = cabeceras.length - (iLugar + 2)
+  console.log(`  ✓ Las ${MAXIMO_MEDICIONES} secciones y sus ${VARIABLES.length} variables están en su sitio.`)
+  if (extras > 0) console.log(`    (${extras} columnas después del medidor: se ignoran)`)
+  console.log()
 
   // -------------------------------------------------------------------------
-  // Catálogos
+  // Catálogos, alias y lo que ya está guardado
   // -------------------------------------------------------------------------
-  const [{ data: lugares }, { data: medidores }, { data: equipo }] = await Promise.all([
-    supabase.from('lugar_medicion').select('id, nombre'),
-    supabase.from('medidor').select('id, numero_serie'),
-    supabase.from('integrante').select('id, correo'),
-  ])
+  const [{ data: lugares }, { data: medidores }, { data: equipo }, { data: alias }, { data: jornadasYa }] =
+    await Promise.all([
+      supabase.from('lugar_medicion').select('id, nombre'),
+      supabase.from('medidor').select('id, numero_serie'),
+      supabase.from('integrante').select('id, correo'),
+      supabase.from('alias_historico').select('alias, integrante_id'),
+      supabase.from('jornada').select('id, fecha, lugar_id, medidor_id, origen'),
+    ])
 
   const porLugar = new Map((lugares ?? []).map((l) => [plegar(l.nombre), l.id]))
   const porMedidor = new Map((medidores ?? []).map((m) => [m.numero_serie.slice(-2), m.id]))
+  const nombreDeLugar = new Map((lugares ?? []).map((l) => [l.id, l.nombre]))
+
+  /*
+   * Los autores llegan con su correo personal de Gmail, no con el
+   * institucional. `alias_historico` existe justo para eso: relaciona el
+   * nombre de usuario de esos correos con la persona del equipo (FR-030a).
+   */
   const porCorreo = new Map((equipo ?? []).map((p) => [p.correo.toLowerCase(), p.id]))
+  const porAlias = new Map((alias ?? []).map((a) => [a.alias.toLowerCase(), a.integrante_id]))
+
+  const claveNatural = (fecha: string, lugarId: string, medidorId: string) =>
+    `${fecha}|${lugarId}|${medidorId}`
+  const yaGuardadas = new Map(
+    (jornadasYa ?? []).map((j) => [claveNatural(j.fecha, j.lugar_id, j.medidor_id), j])
+  )
 
   // -------------------------------------------------------------------------
-  // Convertir
+  // Clasificar
   // -------------------------------------------------------------------------
-  const jornadas: FilaJornada[] = []
-  const mediciones: FilaMedicion[] = []
+  interface Pendiente {
+    renglon: number
+    fecha: string
+    turno: 'mediodia' | 'tarde'
+    lugarId: string
+    medidorId: string
+    integranteId: string | null
+    lecturas: { numero: number; valores: Record<string, number | null> }[]
+  }
+
+  const nuevas: Pendiente[] = []
+  const repetidas: string[] = []
+  const fechaNoFiable: string[] = []
   const descartes: string[] = []
   const avisos: string[] = []
+  const correosSinDuenio = new Set<string>()
   const lugaresDesconocidos = new Set<string>()
-  let sinAutor = 0
+  const medidoresDesconocidos = new Set<string>()
   let fechasAmbiguas = 0
 
   respuestas.forEach((fila, n) => {
-    const renglon = n + 2 // en la hoja, contando la cabecera
+    const renglon = n + 2
 
     const nombreLugar = (fila[iLugar] ?? '').trim()
+    const textoMedidor = (fila[iMedidor] ?? '').trim()
+
+    if (!nombreLugar || !textoMedidor) {
+      descartes.push(
+        `renglón ${renglon}: ${!nombreLugar ? 'sin lugar' : ''}${!nombreLugar && !textoMedidor ? ' y ' : ''}${!textoMedidor ? 'sin medidor' : ''}`
+      )
+      return
+    }
+
     const lugarId = porLugar.get(plegar(LUGARES[plegar(nombreLugar)] ?? nombreLugar))
     if (!lugarId) {
-      lugaresDesconocidos.add(nombreLugar || '(vacío)')
+      lugaresDesconocidos.add(nombreLugar)
       descartes.push(`renglón ${renglon}: lugar desconocido «${nombreLugar}»`)
       return
     }
 
-    const serie = (fila[iMedidor] ?? '').trim().replace(/\D/g, '').slice(-2)
+    const serie = textoMedidor.replace(/\D/g, '').slice(-2)
     const medidorId = porMedidor.get(serie)
     if (!medidorId) {
-      descartes.push(`renglón ${renglon}: medidor «${fila[iMedidor] ?? ''}» no está en el catálogo`)
+      medidoresDesconocidos.add(`${textoMedidor} → ${serie || '(sin cifras)'}`)
+      descartes.push(`renglón ${renglon}: medidor «${textoMedidor}» no está en el catálogo`)
       return
     }
 
-    const { iso: fecha, ambigua } = fechaDeMarcaTemporal(iMarca === -1 ? '' : (fila[iMarca] ?? ''))
-    if (!fecha) {
-      descartes.push(`renglón ${renglon}: no se pudo leer la fecha`)
+    const marca = marcaTemporal(iMarca === -1 ? '' : (fila[iMarca] ?? ''))
+    if (!marca.iso) {
+      descartes.push(`renglón ${renglon}: no se pudo leer la marca temporal`)
       return
     }
-    if (ambigua) fechasAmbiguas++
+    if (marca.ambigua) fechasAmbiguas++
 
-    // El turno sale de la hora elegida en la PRIMERA medición.
-    const turno = turnoDeLaHora(fila[horas[0]] ?? '')
+    // El turno sale de la primera hora que traiga la respuesta: a veces la
+    // primera medición va vacía y la jornada empieza en la segunda.
+    let turno: 'mediodia' | 'tarde' | null = null
+    for (const h of horas) {
+      turno = turnoDeLaHora(fila[h] ?? '')
+      if (turno) break
+    }
     if (!turno) {
-      descartes.push(`renglón ${renglon}: no se pudo deducir el turno de «${fila[horas[0]] ?? ''}»`)
+      descartes.push(`renglón ${renglon}: ninguna medición dice a qué hora se tomó`)
       return
-    }
-
-    if (!esDiaDeMedicion(fecha)) {
-      avisos.push(`renglón ${renglon}: ${fecha} no es miércoles ni viernes`)
     }
 
     const correo = iCorreo === -1 ? '' : (fila[iCorreo] ?? '').trim().toLowerCase()
-    const integranteId = porCorreo.get(correo) ?? null
-    if (!integranteId) sinAutor++
+    const usuario = correo.split('@')[0]
+    const integranteId = porCorreo.get(correo) ?? porAlias.get(usuario) ?? null
+    if (correo && !integranteId) correosSinDuenio.add(correo)
 
-    const claveJornada = `${fecha}|${turno}|${lugarId}|${medidorId}`
-    const jornadaId = uuidDeterminista(`formulario|jornada|${claveJornada}`)
-
-    let algunaMedicion = false
+    // ── Las lecturas ────────────────────────────────────────────────────
+    const lecturas: Pendiente['lecturas'] = []
 
     for (let m = 0; m < MAXIMO_MEDICIONES; m++) {
       const inicio = horas[m]
@@ -452,7 +538,7 @@ async function main() {
 
         const resultado = validarValor(v.clave, valor)
         if (resultado.estado === 'rechazado') {
-          // Un valor imposible se descarta SOLO él; las otras nueve
+          // Un valor imposible se descarta SOLO él: las otras nueve
           // variables de esa lectura son buenas y se conservan.
           rechazados.push(`${v.clave}=${valor}`)
           valores[v.clave] = null
@@ -469,83 +555,130 @@ async function main() {
         )
       }
 
-      // Una lectura sin ningún número no es una lectura: la jornada pudo
-      // haberse enviado con solo cuatro de las siete rellenas.
-      if (!tieneAlgo) continue
-
-      algunaMedicion = true
-      const hora = horaDelTurno(turno, m + 1)!
-
-      mediciones.push({
-        id: uuidDeterminista(`formulario|medicion|${claveJornada}|${m + 1}`),
-        jornada_id: jornadaId,
-        numero: m + 1,
-        hora: `${hora}:00`,
-        dato_dudoso: false,
-        nota_dudoso: null,
-        ...valores,
-      })
+      if (tieneAlgo) lecturas.push({ numero: m + 1, valores })
     }
 
-    if (!algunaMedicion) {
-      descartes.push(`renglón ${renglon}: ninguna de las siete mediciones trae datos`)
+    if (lecturas.length === 0) {
+      descartes.push(`renglón ${renglon}: ninguna de las ${MAXIMO_MEDICIONES} mediciones trae datos`)
       return
     }
 
-    jornadas.push({
-      id: jornadaId,
-      fecha,
+    const donde = nombreDeLugar.get(lugarId)
+    const resumen = `${marca.iso} · ${donde} · medidor ${serie} · ${lecturas.length} lecturas`
+
+    // ── ¿Ya está guardada? ──────────────────────────────────────────────
+    const existente = yaGuardadas.get(claveNatural(marca.iso, lugarId, medidorId))
+    if (existente) {
+      repetidas.push(`renglón ${renglon}: ${resumen} — ya está (origen «${existente.origen}»)`)
+      return
+    }
+
+    // ── ¿Es creíble la fecha? ───────────────────────────────────────────
+    //
+    // Dos señales, y cualquiera de las dos basta para no fiarse:
+    //
+    //  · El envío no encaja con el turno.
+    //  · El día no es miércoles ni viernes.
+    //
+    // La segunda es más dura aquí que en el formulario de la aplicación, y
+    // a propósito. Cuando alguien escribe una fecha a mano, un sábado puede
+    // ser una salida extraordinaria y hay que creerle. Cuando la fecha la
+    // pone un sello de envío, un sábado significa que alguien se sentó el
+    // fin de semana a pasar a limpio: el dato es bueno, la fecha no.
+    const coherente = envioCoherente(turno, marca.minutos)
+    if (!coherente.ok) {
+      fechaNoFiable.push(
+        `renglón ${renglon}: ${resumen} — ${coherente.motivo} (${nombreDelDia(marca.iso)})`
+      )
+      return
+    }
+
+    if (!esDiaDeMedicion(marca.iso)) {
+      fechaNoFiable.push(
+        `renglón ${renglon}: ${resumen} — se envió un ${nombreDelDia(marca.iso)}, y se mide miércoles y viernes`
+      )
+      return
+    }
+
+    nuevas.push({
+      renglon,
+      fecha: marca.iso,
       turno,
-      lugar_id: lugarId,
-      medidor_id: medidorId,
-      integrante_id: integranteId,
-      origen: 'importacion',
-      cerrada: true,
+      lugarId,
+      medidorId,
+      integranteId,
+      lecturas,
     })
   })
-
-  // Dos respuestas del mismo día, turno, lugar y medidor comparten clave
-  // natural: es la misma jornada enviada dos veces. Se queda una.
-  const unicas = new Map(jornadas.map((j) => [j.id, j]))
-  const medicionesUnicas = new Map(mediciones.map((m) => [m.id, m]))
 
   // -------------------------------------------------------------------------
   // Informe
   // -------------------------------------------------------------------------
-  console.log(`  jornadas   : ${unicas.size}`)
-  console.log(`  mediciones : ${medicionesUnicas.size}`)
-  if (jornadas.length !== unicas.size) {
-    console.log(`  (${jornadas.length - unicas.size} respuestas repetían jornada y se unificaron)`)
-  }
-  console.log(`  sin autor  : ${sinAutor} (el correo no corresponde a ningún integrante)`)
+  const totalLecturas = nuevas.reduce((n, j) => n + j.lecturas.length, 0)
 
-  if (fechasAmbiguas > 0) {
-    console.log(`\n  ⚠️  ${fechasAmbiguas} fechas con día 12 o menor.`)
-    console.log('      Se leyeron como día/mes, que es lo que produce una hoja en')
-    console.log('      español. Compruebe una contra el formulario antes de confirmar.')
+  console.log(`  jornadas nuevas       : ${nuevas.length}  (${totalLecturas} mediciones)`)
+  console.log(`  ya estaban guardadas  : ${repetidas.length}`)
+  console.log(`  con fecha no fiable   : ${fechaNoFiable.length}`)
+  console.log(`  descartadas           : ${descartes.length}`)
+
+  if (fechaNoFiable.length > 0) {
+    console.log('\n  ─────────────────────────────────────────────────────────')
+    console.log('  ⚠️  FECHAS QUE NO PUEDEN SER LA FECHA DE LA MEDICIÓN')
+    console.log('  ─────────────────────────────────────────────────────────')
+    console.log('  El formulario no pregunta qué día se midió: usa la hora de')
+    console.log('  envío. En estas respuestas el envío no encaja con el turno,')
+    console.log('  así que se escribieron después, pasando a limpio.')
+    console.log('  Importarlas archivaría las jornadas el día equivocado.\n')
+    for (const f of fechaNoFiable.slice(0, 25)) console.log(`    · ${f}`)
+    if (fechaNoFiable.length > 25) console.log(`    … y ${fechaNoFiable.length - 25} más`)
+    console.log('\n  Para recuperarlas hay que saber el día real de cada una.')
+    console.log('  Lo más sencillo: añadir al formulario una pregunta «Fecha de')
+    console.log('  la medición» y volver a exportar.')
+  }
+
+  if (repetidas.length > 0) {
+    console.log(`\n  Ya guardadas (${repetidas.length}) — no se tocan:`)
+    for (const r of repetidas.slice(0, 8)) console.log(`    · ${r}`)
+    if (repetidas.length > 8) console.log(`    … y ${repetidas.length - 8} más`)
   }
 
   if (lugaresDesconocidos.size > 0) {
     console.log('\n  Lugares que no están en el catálogo:')
     for (const l of lugaresDesconocidos) console.log(`    · ${l}`)
-    console.log('    Añádalos en Supabase → lugar_medicion, o corrija la tabla LUGARES.')
+  }
+
+  if (medidoresDesconocidos.size > 0) {
+    console.log('\n  Medidores que no están en el catálogo:')
+    for (const m of medidoresDesconocidos) console.log(`    · ${m}`)
+  }
+
+  if (correosSinDuenio.size > 0) {
+    console.log('\n  Correos que no corresponden a nadie del equipo:')
+    for (const c of correosSinDuenio) console.log(`    · ${c}`)
+    console.log('    Esas jornadas quedarían sin autor. Se arregla añadiendo el')
+    console.log('    alias en la tabla `alias_historico`.')
+  }
+
+  if (fechasAmbiguas > 0) {
+    console.log(`\n  ⚠️  ${fechasAmbiguas} fechas con día 12 o menor: día/mes y mes/día`)
+    console.log('      son indistinguibles ahí. Se leyeron como día/mes.')
   }
 
   if (avisos.length > 0) {
     console.log(`\n  Avisos (${avisos.length}):`)
-    for (const a of avisos.slice(0, 12)) console.log(`    · ${a}`)
-    if (avisos.length > 12) console.log(`    … y ${avisos.length - 12} más`)
+    for (const a of avisos.slice(0, 10)) console.log(`    · ${a}`)
+    if (avisos.length > 10) console.log(`    … y ${avisos.length - 10} más`)
   }
 
   if (descartes.length > 0) {
     console.log(`\n  Descartadas (${descartes.length}):`)
-    for (const d of descartes.slice(0, 12)) console.log(`    · ${d}`)
-    if (descartes.length > 12) console.log(`    … y ${descartes.length - 12} más`)
+    for (const d of descartes.slice(0, 10)) console.log(`    · ${d}`)
+    if (descartes.length > 10) console.log(`    … y ${descartes.length - 10} más`)
   }
 
-  if (unicas.size === 0) {
-    console.log('\n✖ No hay nada que importar.\n')
-    process.exitCode = 1
+  if (nuevas.length === 0) {
+    console.log('\n  ─────────────────────────────────────────────────────────')
+    console.log('  No hay nada que importar sin riesgo. No se escribió nada.\n')
     return
   }
 
@@ -561,9 +694,20 @@ async function main() {
   // -------------------------------------------------------------------------
   console.log('\n  Escribiendo…')
 
+  const filasJornada = nuevas.map((j) => ({
+    id: uuidDeterminista(`formulario|jornada|${j.fecha}|${j.turno}|${j.lugarId}|${j.medidorId}`),
+    fecha: j.fecha,
+    turno: j.turno,
+    lugar_id: j.lugarId,
+    medidor_id: j.medidorId,
+    integrante_id: j.integranteId,
+    origen: 'importacion' as const,
+    cerrada: true,
+  }))
+
   const { error: eJ } = await supabase
     .from('jornada')
-    .upsert([...unicas.values()], { onConflict: 'id', ignoreDuplicates: true })
+    .upsert(filasJornada, { onConflict: 'id', ignoreDuplicates: true })
 
   if (eJ) {
     console.error(`\n✖ No se pudieron guardar las jornadas: ${eJ.message}\n`)
@@ -571,18 +715,29 @@ async function main() {
     return
   }
 
-  // Por tandas: una sola sentencia con trescientas filas es más fácil de
-  // rechazar entera, y si falla no se sabe por cuál.
-  const lista = [...medicionesUnicas.values()]
+  const filasMedicion = nuevas.flatMap((j, i) =>
+    j.lecturas.map((l) => ({
+      id: uuidDeterminista(
+        `formulario|medicion|${j.fecha}|${j.turno}|${j.lugarId}|${j.medidorId}|${l.numero}`
+      ),
+      jornada_id: filasJornada[i].id,
+      numero: l.numero,
+      hora: `${horaDelTurno(j.turno, l.numero)}:00`,
+      dato_dudoso: false,
+      nota_dudoso: null,
+      ...l.valores,
+    }))
+  )
+
   let escritas = 0
-  for (let i = 0; i < lista.length; i += 100) {
-    const tanda = lista.slice(i, i + 100)
+  for (let i = 0; i < filasMedicion.length; i += 100) {
+    const tanda = filasMedicion.slice(i, i + 100)
     const { error } = await supabase
       .from('medicion')
       .upsert(tanda, { onConflict: 'id', ignoreDuplicates: true })
 
     if (error) {
-      console.error(`\n✖ Falló la tanda ${i / 100 + 1}: ${error.message}`)
+      console.error(`\n✖ Falló la tanda ${Math.floor(i / 100) + 1}: ${error.message}`)
       console.error(`  Se escribieron ${escritas} mediciones antes del fallo.\n`)
       process.exitCode = 1
       return
@@ -590,9 +745,9 @@ async function main() {
     escritas += tanda.length
   }
 
-  console.log(`\n✓ ${unicas.size} jornadas y ${escritas} mediciones importadas.\n`)
-  console.log('  Se pueden ver en Tableros. Las jornadas quedan cerradas y marcadas')
-  console.log('  como «importacion», así que se distinguen de las tomadas en la app.\n')
+  console.log(`\n✓ ${filasJornada.length} jornadas y ${escritas} mediciones importadas.\n`)
+  console.log('  Se ven en Tableros. Quedan cerradas y marcadas como «importacion»,')
+  console.log('  así que se distinguen de las tomadas en la aplicación.\n')
 }
 
 main().catch((e) => {

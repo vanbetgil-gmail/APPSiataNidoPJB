@@ -66,9 +66,36 @@ const supabase = createClient(URL, CLAVE, {
  * importación: un vacío convertido en cero falsearía a la baja todos los
  * promedios de los tableros, y nadie lo notaría nunca (FR-025).
  */
-function aNumero(bruto: unknown): number | null {
+function aNumero(bruto: unknown, esPorcentaje = false): number | null {
   if (bruto === null || bruto === undefined || bruto === '') return null
-  if (typeof bruto === 'number') return Number.isFinite(bruto) ? bruto : null
+
+  if (typeof bruto === 'number') {
+    if (!Number.isFinite(bruto)) return null
+
+    /*
+     * ── El fallo que costo un tercio de las humedades ──────────────────
+     *
+     * Cuando alguien escribe «40%» en Excel, la celda NO guarda el texto
+     * «40%»: guarda el numero 0,4 y le pone formato de porcentaje. Lo que
+     * se ve es 40%; lo que hay dentro es 0,4.
+     *
+     * Esta funcion leia el valor interno —lo correcto para cualquier otra
+     * columna— y para esas celdas se quedaba con la fraccion. Las que se
+     * escribieron sin el simbolo, como «36», entraron bien. De ahi que
+     * solo estuviera mal una parte: 31 de 96 lecturas.
+     *
+     * Nadie lo vio porque 0,4 es un numero valido: no rompe nada, no se
+     * sale del rango 0-100 y solo arrastra el promedio hacia abajo. Se
+     * corrigio en la migracion 0020.
+     *
+     * Una humedad relativa por debajo del 1 % no existe en Medellin ni en
+     * ningun taller, asi que cualquier valor entre 0 y 1 es con certeza
+     * una fraccion mal leida.
+     */
+    if (esPorcentaje && bruto > 0 && bruto <= 1) return bruto * 100
+
+    return bruto
+  }
 
   const texto = String(bruto).trim()
   if (!texto) return null
@@ -198,7 +225,8 @@ function leerExcel(): FilaCruda[] {
 
     const variables: Record<string, number | null> = {}
     VARIABLES.forEach((nombre, i) => {
-      variables[nombre] = aNumero(en(3 + i))
+      // `humedad_relativa` es la unica columna en porcentaje del medidor.
+      variables[nombre] = aNumero(en(3 + i), nombre === 'humedad_relativa')
     })
 
     salida.push({
