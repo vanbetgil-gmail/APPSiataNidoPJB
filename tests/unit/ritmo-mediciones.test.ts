@@ -10,6 +10,9 @@ import {
   proximaMedicionEn,
   segundosRestantes,
   ultimosDiasDeMedicion,
+  horaDelTurno,
+  horaLegible,
+  MAXIMO_MEDICIONES,
 } from '@/lib/mediciones/ritmo'
 
 /**
@@ -137,5 +140,44 @@ describe('La hora actual', () => {
     // PostgreSQL rechaza «9:5:0»; necesita «09:05:00».
     expect(horaActual(new Date(2026, 8, 16, 9, 5, 0))).toBe('09:05:00')
     expect(horaActual(new Date(2026, 8, 16, 14, 30, 45))).toBe('14:30:45')
+  })
+})
+
+describe('Los turnos del formulario de campo', () => {
+  it('el turno de mediodía va de 12:00 a 13:00', () => {
+    // Las siete horas exactas del formulario de Google.
+    const horas = [1, 2, 3, 4, 5, 6, 7].map((n) => horaDelTurno('mediodia', n))
+    expect(horas).toEqual(['12:00', '12:10', '12:20', '12:30', '12:40', '12:50', '13:00'])
+  })
+
+  it('el turno de la tarde va de 14:00 a 15:00', () => {
+    const horas = [1, 2, 3, 4, 5, 6, 7].map((n) => horaDelTurno('tarde', n))
+    expect(horas).toEqual(['14:00', '14:10', '14:20', '14:30', '14:40', '14:50', '15:00'])
+  })
+
+  it('la séptima medición cruza la hora sin equivocarse', () => {
+    // 12:50 + 10 min son las 13:00, no las 12:60.
+    expect(horaDelTurno('mediodia', 7)).toBe('13:00')
+    expect(horaDelTurno('tarde', 7)).toBe('15:00')
+  })
+
+  it('sin turno no hay hora que calcular', () => {
+    // Las quince jornadas del histórico se importaron de un Excel que no
+    // registraba turnos. Inventarles uno sería peor que dejarlo en blanco.
+    expect(horaDelTurno(null, 1)).toBeNull()
+    expect(horaDelTurno('madrugada', 1)).toBeNull()
+  })
+
+  it('la hora se lee como se dice en Colombia', () => {
+    expect(horaLegible('12:00')).toBe('12:00 p. m.')
+    expect(horaLegible('13:00')).toBe('1:00 p. m.')
+    expect(horaLegible('14:30')).toBe('2:30 p. m.')
+    expect(horaLegible('09:05')).toBe('9:05 a. m.')
+  })
+
+  it('una jornada admite siete mediciones', () => {
+    // El formulario de campo tiene MEDICION 1 a MEDICION 7. Era 8, deducido
+    // del histórico; siete es el procedimiento real.
+    expect(MAXIMO_MEDICIONES).toBe(7)
   })
 })

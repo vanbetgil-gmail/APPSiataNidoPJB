@@ -4,7 +4,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react'
 import { useRouter } from 'next/navigation'
 import { guardarMedicion } from '@/lib/mediciones/acciones'
 import { RANGOS, validarValor } from '@/lib/validacion/rangos'
-import { horaActual } from '@/lib/mediciones/ritmo'
+import { horaDelTurno, horaLegible } from '@/lib/mediciones/ritmo'
 
 /**
  * Una medición: las diez variables del medidor.
@@ -90,6 +90,8 @@ function useEnElNavegador(): boolean {
 export function FormularioMedicion(props: {
   jornadaId: string
   numero: number
+  /** De él sale la hora. Nulo en las jornadas del histórico. */
+  turno: string | null
   /** Cierto mientras la jornada esté cerrada. */
   bloqueado?: boolean
 }) {
@@ -107,19 +109,31 @@ export function FormularioMedicion(props: {
 function Formulario({
   jornadaId,
   numero,
+  turno,
   bloqueado,
 }: {
   jornadaId: string
   numero: number
+  turno: string | null
   bloqueado?: boolean
 }) {
   const router = useRouter()
   const clave = claveDelBorrador(jornadaId, numero)
 
+  /*
+   * La hora que le toca a esta medición según el turno.
+   *
+   * Si la jornada tiene turno —todas las que se abren desde la aplicación—
+   * la hora no se pide: se muestra. Solo las jornadas viejas, importadas de
+   * un Excel sin turnos, obligan a escribirla.
+   */
+  const horaDelProtocolo = horaDelTurno(turno, numero)
+
   const inicial = useState(() => leerBorrador(clave))[0]
 
   const [valores, setValores] = useState<Record<string, string>>(inicial.valores)
   const [hora, setHora] = useState('')
+  const [corrigiendoHora, setCorrigiendoHora] = useState(horaDelProtocolo === null)
   const [nota, setNota] = useState(inicial.nota)
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -166,7 +180,9 @@ function Formulario({
       id: crypto.randomUUID(),
       jornadaId,
       numero,
-      hora: hora || horaActual(new Date()),
+      // Vacía = el servidor la calcula del turno. Solo viaja un valor
+      // cuando alguien corrigió la hora a propósito.
+      hora,
       valores: numeros,
       nota,
     })
@@ -187,6 +203,7 @@ function Formulario({
     setValores({})
     setNota('')
     setHora('')
+    setCorrigiendoHora(horaDelProtocolo === null)
     setConfirmado(false)
     setGuardando(false)
     router.refresh()
@@ -196,22 +213,68 @@ function Formulario({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="flex flex-col gap-1">
-          <label htmlFor="hora" className="text-sm font-medium">
-            Hora de la lectura
-          </label>
-          <input
-            id="hora"
-            type="time"
-            value={hora}
-            onChange={(e) => setHora(e.target.value)}
-            className="rounded-[--radius-tarjeta] border border-[color:var(--color-borde)] bg-[color:var(--color-superficie)] px-3 py-2 text-base"
-          />
-        </div>
-        <p className="pb-2 text-xs" style={{ color: 'var(--color-texto-suave)' }}>
-          Si la deja vacía se guarda la hora actual.
-        </p>
+      {/*
+        ── La hora se muestra; no se pregunta ─────────────────────────────
+
+        La decide el turno, igual que en el formulario de campo. Escribirla
+        siete veces de pie en un taller no aporta ningún dato que la
+        aplicación no sepa ya, y abre la puerta a la errata de las doce y
+        las dos.
+
+        La corrección existe porque la vida existe: alguien llega tarde a la
+        cuarta lectura. Está detrás de un enlace para que sea lo excepcional
+        y no lo primero que se ve.
+      */}
+      <div className="flex flex-wrap items-center gap-3">
+        {corrigiendoHora ? (
+          <>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="hora" className="text-sm font-medium">
+                Hora de la lectura
+              </label>
+              <input
+                id="hora"
+                type="time"
+                value={hora}
+                onChange={(e) => setHora(e.target.value)}
+                className="rounded-[--radius-tarjeta] border border-[color:var(--color-borde)] bg-[color:var(--color-superficie)] px-3 py-2 text-base"
+              />
+            </div>
+            {horaDelProtocolo && (
+              <button
+                type="button"
+                onClick={() => {
+                  setHora('')
+                  setCorrigiendoHora(false)
+                }}
+                className="self-end pb-2 text-sm text-[color:var(--color-marca)]"
+              >
+                Volver a la hora del turno
+              </button>
+            )}
+            {!horaDelProtocolo && (
+              <p className="text-xs" style={{ color: 'var(--color-texto-suave)' }}>
+                Esta jornada es del histórico y no tiene turno, así que la hora se escribe.
+              </p>
+            )}
+          </>
+        ) : (
+          <>
+            <p className="text-sm">
+              Hora de la lectura:{' '}
+              <strong style={{ color: 'var(--color-marca)' }}>
+                {horaLegible(horaDelProtocolo ?? '')}
+              </strong>
+            </p>
+            <button
+              type="button"
+              onClick={() => setCorrigiendoHora(true)}
+              className="text-sm text-[color:var(--color-texto-suave)] underline"
+            >
+              Corregir la hora
+            </button>
+          </>
+        )}
       </div>
 
       <ul className="flex flex-col gap-2">

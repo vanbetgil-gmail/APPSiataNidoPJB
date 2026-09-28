@@ -24,7 +24,8 @@
     "cargar-equipo": "tsx scripts/cargar-equipo.ts",
     "cargar-taxonomia": "tsx scripts/cargar-taxonomia.ts",
     "probar-smtp": "tsx scripts/probar-smtp.ts",
-    "probar-aviso": "tsx scripts/probar-aviso.ts"
+    "probar-aviso": "tsx scripts/probar-aviso.ts",
+    "importar-formulario": "tsx scripts/importar-formulario.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.5",

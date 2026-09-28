@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { crearClienteServidor } from '@/lib/supabase/servidor'
 import { exigirIntegrante } from '@/lib/auth/sesion'
 import { RANGOS, validarValor } from '@/lib/validacion/rangos'
-import { MAXIMO_MEDICIONES, esDiaDeMedicion } from './ritmo'
+import { MAXIMO_MEDICIONES, esDiaDeMedicion, horaDelTurno, turnoDe } from './ritmo'
 
 /**
  * Registro de jornadas y mediciones — Historia 3.
@@ -43,6 +43,7 @@ export async function crearJornada(datos: {
   fecha: string
   lugarId: string
   medidorId: string
+  turno: string
 }): Promise<ResultadoMedicion> {
   const integrante = await exigirIntegrante('/jornadas')
   const supabase = await crearClienteServidor()
@@ -53,6 +54,17 @@ export async function crearJornada(datos: {
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(datos.fecha)) {
     return { ok: false, mensaje: 'La fecha no tiene un formato válido.' }
+  }
+
+  // El turno SÍ se exige: de él salen las siete horas, y una jornada sin
+  // turno obligaría a escribirlas a mano una por una (migración 0019).
+  //
+  // `turnoDe` devuelve la definición completa, no solo un booleano, y de ahí
+  // sale la clave ya con el tipo correcto: así no hace falta convertir un
+  // texto cualquiera en `ClaveTurno` a la fuerza.
+  const turno = turnoDe(datos.turno)
+  if (!turno) {
+    return { ok: false, mensaje: 'Elija si la jornada es de mediodía o de la tarde.' }
   }
 
   /*
@@ -70,6 +82,7 @@ export async function crearJornada(datos: {
     lugar_id: datos.lugarId,
     medidor_id: datos.medidorId,
     integrante_id: integrante.id,
+    turno: turno.clave,
     origen: 'app',
   })
 
@@ -93,6 +106,7 @@ export async function guardarMedicion(datos: {
   id: string
   jornadaId: string
   numero: number
+  /** Vacía = la que corresponde al turno. Con valor = corrección expresa. */
   hora: string
   valores: Record<string, number | null>
   nota: string
@@ -107,8 +121,30 @@ export async function guardarMedicion(datos: {
     }
   }
 
-  if (!/^\d{2}:\d{2}(:\d{2})?$/.test(datos.hora)) {
-    return { ok: false, mensaje: 'La hora no tiene un formato válido.' }
+  /*
+   * La hora la decide el SERVIDOR a partir del turno.
+   *
+   * El cliente puede enviar una corrección —alguien llegó tarde a la
+   * cuarta lectura— pero si no la envía, la hora no se inventa ni se toma
+   * del reloj: se calcula. Así una jornada del turno de mediodía tiene
+   * siempre 12:00, 12:10 … 13:00, aunque se pase a limpio al día
+   * siguiente, que es exactamente lo que garantizaba el formulario de
+   * Google.
+   */
+  const { data: jornada } = await supabase
+    .from('jornada')
+    .select('turno')
+    .eq('id', datos.jornadaId)
+    .maybeSingle()
+
+  const hora = datos.hora || horaDelTurno(jornada?.turno, datos.numero) || ''
+
+  if (!/^\d{2}:\d{2}(:\d{2})?$/.test(hora)) {
+    return {
+      ok: false,
+      mensaje:
+        'No se pudo determinar la hora de la medición. Escríbala a mano con «Corregir la hora».',
+    }
   }
 
   // Solo se copian las claves conocidas: así una clave inventada en el
@@ -142,7 +178,7 @@ export async function guardarMedicion(datos: {
     id: datos.id,
     jornada_id: datos.jornadaId,
     numero: datos.numero,
-    hora: datos.hora.length === 5 ? `${datos.hora}:00` : datos.hora,
+    hora: hora.length === 5 ? `${hora}:00` : hora,
     ...fila,
     dato_dudoso: nota.length > 0,
     nota_dudoso: nota || null,

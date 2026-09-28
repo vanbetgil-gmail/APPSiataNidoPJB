@@ -10,9 +10,13 @@ import { Aviso } from '@/components/ui/Aviso'
 import { RANGOS } from '@/lib/validacion/rangos'
 import {
   aISO,
+  desdeISO,
   fechaLegible,
+  horaDelTurno,
+  horaLegible,
   MAXIMO_MEDICIONES,
   proximaMedicionEn,
+  turnoDe,
 } from '@/lib/mediciones/ritmo'
 import type { Jornada, Medicion } from '@/lib/supabase/tipos'
 
@@ -49,14 +53,30 @@ export default async function PaginaJornada({ params }: { params: Promise<{ id: 
   const esHoy = jornada.fecha === aISO(new Date())
 
   /*
-   * El cronómetro solo tiene sentido hoy.
+   * ── A qué hora toca la siguiente ─────────────────────────────────────
    *
-   * Pasando a limpio la jornada del miércoles pasado, una cuenta atrás de
-   * diez minutos sobre una hora de hace tres días marcaría cero siempre y no
-   * diría nada. Se pinta el ritmo, no un reloj parado.
+   * Con turno, la hora está escrita en el protocolo: la medición 4 del
+   * turno de mediodía es a las 12:30, hayan ido las anteriores puntuales o
+   * no. Es la cuenta atrás correcta, y además existe ANTES de la primera
+   * lectura —«Medición 1 en 04:32»— que es justo cuando hace falta.
+   *
+   * Sin turno —las quince jornadas del histórico— se vuelve a lo anterior:
+   * diez minutos desde la hora declarada de la última.
+   *
+   * El cronómetro solo tiene sentido hoy. Pasando a limpio la jornada del
+   * miércoles pasado marcaría cero siempre y no diría nada.
    */
-  const objetivo =
-    esHoy && ultima ? proximaMedicionEn(jornada.fecha, ultima.hora).getTime() : null
+  const horaSiguiente = horaDelTurno(jornada.turno, siguiente)
+
+  let objetivo: number | null = null
+  if (esHoy && horaSiguiente) {
+    const [h, m] = horaSiguiente.split(':').map(Number)
+    const momento = desdeISO(jornada.fecha)
+    momento.setHours(h, m, 0, 0)
+    objetivo = momento.getTime()
+  } else if (esHoy && ultima) {
+    objetivo = proximaMedicionEn(jornada.fecha, ultima.hora).getTime()
+  }
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-8">
@@ -72,6 +92,7 @@ export default async function PaginaJornada({ params }: { params: Promise<{ id: 
           {fechaLegible(jornada.fecha)}
           {' · '}
           {medidor?.etiqueta ?? `Medidor ${medidor?.numero_serie ?? '—'}`}
+          {turnoDe(jornada.turno) && ` · turno de ${turnoDe(jornada.turno)!.clave === 'mediodia' ? 'mediodía' : 'la tarde'}`}
           {lugar?.es_interior && ' · espacio cerrado'}
         </p>
       </header>
@@ -152,15 +173,22 @@ export default async function PaginaJornada({ params }: { params: Promise<{ id: 
             </div>
           )}
 
-          {!esHoy && ultima && (
+          {!esHoy && horaSiguiente && (
             <p className="mt-3 text-sm text-[color:var(--color-texto-suave)]">
-              Esta jornada es de otro día, así que no hay cuenta atrás. La anterior se tomó a las{' '}
+              Esta jornada es de otro día, así que no hay cuenta atrás. Según el turno, esta lectura
+              es de las <strong>{horaLegible(horaSiguiente)}</strong>.
+            </p>
+          )}
+
+          {!esHoy && !horaSiguiente && ultima && (
+            <p className="mt-3 text-sm text-[color:var(--color-texto-suave)]">
+              Esta jornada es de otro día y no tiene turno registrado. La anterior se tomó a las{' '}
               {ultima.hora.slice(0, 5)}.
             </p>
           )}
 
           <div className="mt-5">
-            <FormularioMedicion jornadaId={jornada.id} numero={siguiente} />
+            <FormularioMedicion jornadaId={jornada.id} numero={siguiente} turno={jornada.turno} />
           </div>
         </section>
       )}

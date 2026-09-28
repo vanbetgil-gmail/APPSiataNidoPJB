@@ -4,9 +4,13 @@
  * ── De dónde salen estos números ─────────────────────────────────────────
  *
  * El equipo mide **los miércoles y los viernes**, tomando una lectura cada
- * **diez minutos** hasta completar **ocho** en el mismo punto. No es una
- * convención de esta aplicación: es como trabajan, y el histórico de
- * `MEDIDORES.xlsx` lo confirma jornada tras jornada.
+ * **diez minutos** hasta completar **siete** en el mismo punto, empezando a
+ * las 12:00 o a las 14:00.
+ *
+ * No es una convención de esta aplicación: es el formulario de campo que el
+ * equipo usa —«MEDICIONES PARA LOS MEDIDORES DE LUIS»— pasado a código. El
+ * histórico de `MEDIDORES.xlsx` confirma el ritmo de diez minutos; el
+ * formulario aporta el número exacto de lecturas y las horas.
  *
  * ── Por qué las fechas se construyen por partes ──────────────────────────
  *
@@ -25,8 +29,73 @@ export const DIAS_DE_MEDICION = [3, 5] as const
 
 export const MINUTOS_ENTRE_MEDICIONES = 10
 
-/** Ocho lecturas por punto: es lo que cabe en una clase. */
-export const MAXIMO_MEDICIONES = 8
+/**
+ * Siete lecturas por jornada.
+ *
+ * Era ocho, deducido del histórico. El formulario de Google que el equipo
+ * usa en campo tiene MEDICION 1 a MEDICION 7 y ahí termina: siete es el
+ * procedimiento, no una estimación.
+ */
+export const MAXIMO_MEDICIONES = 7
+
+/**
+ * Los dos turnos.
+ *
+ * ── Por qué la hora no se escribe ────────────────────────────────────────
+ *
+ * Porque en el formulario de campo no se escribe: se elige entre dos. Cada
+ * medición ofrece su hora del turno de mediodía o la del turno de la tarde,
+ * y nada más. El equipo empieza a las 12:00 o a las 14:00 y toma una lectura
+ * cada diez minutos hasta completar siete.
+ *
+ * Eso convierte la hora en algo que la aplicación puede calcular en vez de
+ * pedir. Un campo menos que rellenar de pie en un taller, y una fuente menos
+ * de erratas: nadie va a escribir «1:20» donde quería decir «13:20».
+ */
+export interface Turno {
+  clave: 'mediodia' | 'tarde'
+  etiqueta: string
+  /** Hora de la PRIMERA medición, en formato de 24 horas. */
+  primeraHora: number
+}
+
+export const TURNOS: readonly Turno[] = [
+  { clave: 'mediodia', etiqueta: 'Mediodía — de 12:00 a 1:00', primeraHora: 12 },
+  { clave: 'tarde', etiqueta: 'Tarde — de 2:00 a 3:00', primeraHora: 14 },
+] as const
+
+export type ClaveTurno = Turno['clave']
+
+export function turnoDe(clave: string | null | undefined): Turno | undefined {
+  return TURNOS.find((t) => t.clave === clave)
+}
+
+/**
+ * A qué hora toca la medición número N de un turno.
+ *
+ * Mediodía: 12:00, 12:10 … 13:00. Tarde: 14:00, 14:10 … 15:00.
+ * Devuelve `null` si el turno no se conoce —las jornadas del histórico no
+ * lo traen— y entonces la hora vuelve a escribirse a mano.
+ */
+export function horaDelTurno(clave: string | null | undefined, numero: number): string | null {
+  const turno = turnoDe(clave)
+  if (!turno) return null
+
+  const minutosDesdeMedianoche =
+    turno.primeraHora * 60 + (numero - 1) * MINUTOS_ENTRE_MEDICIONES
+
+  const h = Math.floor(minutosDesdeMedianoche / 60)
+  const m = minutosDesdeMedianoche % 60
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+}
+
+/** `1:20 p. m.` — cómo se lee una hora de 24 horas en Colombia. */
+export function horaLegible(hhmm: string): string {
+  const [h, m] = hhmm.split(':').map(Number)
+  const sufijo = h < 12 ? 'a. m.' : 'p. m.'
+  const h12 = h % 12 === 0 ? 12 : h % 12
+  return `${h12}:${String(m).padStart(2, '0')} ${sufijo}`
+}
 
 const NOMBRES_DIA = [
   'domingo',

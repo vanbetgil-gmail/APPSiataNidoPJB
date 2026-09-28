@@ -7,7 +7,11 @@ import {
   desdeISO,
   esDiaDeMedicion,
   fechaLegible,
+  horaDelTurno,
+  horaLegible,
+  MAXIMO_MEDICIONES,
   nombreDelDia,
+  TURNOS,
   ultimosDiasDeMedicion,
 } from '@/lib/mediciones/ritmo'
 import type { LugarMedicion, Medidor } from '@/lib/supabase/tipos'
@@ -55,6 +59,7 @@ export function NuevaJornada({
   const sugeridos = ultimosDiasDeMedicion(desdeISO(hoyISO), 6)
   const [fecha, setFecha] = useState(sugeridos[0] ?? hoyISO)
   const [otraFecha, setOtraFecha] = useState(false)
+  const [turno, setTurno] = useState<string>('')
   const [lugarId, setLugarId] = useState('')
   const [medidorId, setMedidorId] = useState(medidores.length === 1 ? medidores[0].id : '')
   const [creando, setCreando] = useState(false)
@@ -67,7 +72,7 @@ export function NuevaJornada({
     setError(null)
 
     const id = crypto.randomUUID()
-    const resultado = await crearJornada({ id, fecha, lugarId, medidorId })
+    const resultado = await crearJornada({ id, fecha, lugarId, medidorId, turno })
 
     if (!resultado.ok) {
       setError(resultado.mensaje)
@@ -141,6 +146,56 @@ export function NuevaJornada({
         )}
       </div>
 
+      {/*
+        ── El turno, y por qué sustituye al campo de hora ─────────────────
+
+        En el formulario de campo la hora de cada medición no se escribe: se
+        elige entre dos, y son siempre las mismas. Empezar a las 12:00 o a
+        las 14:00 determina las siete horas de la jornada.
+
+        Preguntarlo aquí, una vez, ahorra escribir siete horas de pie en un
+        taller y elimina la errata más probable: «1:20» donde se quería
+        decir «13:20».
+      */}
+      <div className="flex flex-col gap-1.5">
+        <span className="text-sm font-medium">Turno</span>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          {TURNOS.map((t) => (
+            <label
+              key={t.clave}
+              className="flex flex-1 cursor-pointer items-start gap-2.5 rounded-[--radius-tarjeta] border px-4 py-3"
+              style={{
+                borderColor: turno === t.clave ? 'var(--color-marca)' : 'var(--color-borde)',
+                backgroundColor:
+                  turno === t.clave ? 'var(--color-salvia-clara)' : 'var(--color-superficie)',
+              }}
+            >
+              <input
+                type="radio"
+                name="turno"
+                value={t.clave}
+                checked={turno === t.clave}
+                onChange={() => setTurno(t.clave)}
+                className="mt-1"
+              />
+              <span>
+                <span className="block text-sm font-medium">{t.etiqueta}</span>
+                <span className="block text-xs" style={{ color: 'var(--color-texto-suave)' }}>
+                  {[1, MAXIMO_MEDICIONES]
+                    .map((n) => horaLegible(horaDelTurno(t.clave, n) ?? ''))
+                    .join(' · ')}{' '}
+                  · {MAXIMO_MEDICIONES} lecturas
+                </span>
+              </span>
+            </label>
+          ))}
+        </div>
+        <p className="text-xs" style={{ color: 'var(--color-texto-suave)' }}>
+          De aquí salen las horas de las {MAXIMO_MEDICIONES} mediciones, una cada diez minutos. No
+          hay que escribirlas.
+        </p>
+      </div>
+
       <div className="flex flex-col gap-1.5">
         <label htmlFor="lugar" className="text-sm font-medium">
           Lugar
@@ -195,7 +250,7 @@ export function NuevaJornada({
       <button
         type="button"
         onClick={empezar}
-        disabled={creando || !lugarId || !medidorId || !fecha}
+        disabled={creando || !lugarId || !medidorId || !fecha || !turno}
         className="self-start rounded-full px-5 py-3 font-medium text-white disabled:opacity-60"
         style={{ backgroundColor: 'var(--color-marca)' }}
       >

@@ -25,6 +25,9 @@
 export type RolIntegrante = 'integrante' | 'responsable'
 export type EstadoFicha = 'borrador' | 'en_revision' | 'publicado' | 'despublicado'
 export type OrigenJornada = 'app' | 'importacion' | 'migracion'
+
+/** Los dos turnos del formulario de campo (migracion 0019). */
+export type ClaveTurno = 'mediodia' | 'tarde'
 export type TipoMedio = 'panorama_360' | 'foto_detalle' | 'video'
 export type OrigenMedio = 'dron' | 'movil'
 
@@ -97,6 +100,14 @@ export type Jornada = {
   integrante_id: string | null
   cerrada: boolean
   origen: OrigenJornada
+  /**
+   * A que hora empieza la jornada: `mediodia` (12:00) o `tarde` (14:00).
+   *
+   * De ahi salen las siete horas, una cada diez minutos, sin que nadie las
+   * escriba. Nulo en las jornadas importadas del historico, que venian de un
+   * Excel sin turnos (migracion 0019).
+   */
+  turno: ClaveTurno | null
   creada_en: string
 }
 
